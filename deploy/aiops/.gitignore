@@ -1,0 +1,10 @@
+# Release artifacts and locally supplied binaries are produced outside Git.
+*.tar
+*.tar.gz
+*.tgz
+/kubectl
+/helm
+/.credentials.yaml
+/.env
+/HOST-OPERATIONS-DESIGN.md
+/host-diagnostic-pod.yaml

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>集群运维工作台</title>
+<style>body{font:16px/1.65 system-ui,sans-serif;background:#10141d;color:#ecf1fa;margin:0}main{max-width:1050px;margin:7vh auto;padding:0 24px}h1{font-size:2.3rem;margin-bottom:8px}p{color:#b8c5d9}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin:32px 0}.card{background:#1b2331;border:1px solid #344158;border-radius:14px;padding:20px}.card h2{font-size:1.12rem;margin:0 0 8px}.card p{margin:0 0 14px}code{display:block;background:#10141d;border-radius:8px;padding:12px;color:#d0e4ff;user-select:all;white-space:normal}.button{display:inline-block;background:#4079f5;color:white;text-decoration:none;padding:11px 20px;border-radius:9px;font-weight:600}small{color:#90a2bd}</style>
+<main><h1>集群运维工作台</h1><p>已预置 Kubernetes 管理工具。进入工作台后，复制下面的提问即可开始；执行变更前先确认目标命名空间、资源和影响。</p>
+<a class="button" href="/?open=1">进入 DeepSeek Harness</a><form method="post" action="/logout" style="display:inline;margin-left:16px"><button style="background:none;border:0;color:#aebdd1;cursor:pointer">退出登录</button></form><div class="grid">
+<section class="card"><h2>集群巡检</h2><p>查看异常工作负载、节点与近期事件。</p><code>巡检整个 Kubernetes 集群，列出异常 Pod、不可用 Deployment 和最近的 Warning 事件，并按影响排序。</code></section>
+<section class="card"><h2>业务日志</h2><p>定位错误日志与重启原因。</p><code>检查 privatization 命名空间最近 30 分钟异常服务的日志，结合 Pod 事件判断原因。</code></section>
+<section class="card"><h2>发布镜像</h2><p>先核对目标与当前镜像，再执行更新。</p><code>先列出 privatization 命名空间的 Deployment 和镜像。我确认目标后，帮我更新指定服务并跟踪发布结果。</code></section>
+<section class="card"><h2>回滚与恢复</h2><p>核对历史版本及影响，再执行回滚。</p><code>检查指定 Deployment 的发布历史和当前状态，给出回滚方案；我确认后再操作。</code></section>
+<section class="card"><h2>资源与容量</h2><p>结合集群资源用量寻找瓶颈。</p><code>查看节点和各命名空间的资源使用情况，找出 CPU、内存或存储的明显风险。</code></section>
+<section class="card"><h2>运维知识库</h2><p>后续可接入应用管理资料与运维手册。</p><code>根据接入的运维手册，结合当前集群状态给出处理建议，并标出依据。</code></section>
+</div><small>本页可随时通过 /guide 打开。集群操作由工作台内的 Kubernetes 工具完成。</small></main></html>

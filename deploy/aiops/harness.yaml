@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aiops-test
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deepseek-harness
+  namespace: aiops-test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deepseek-harness-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: deepseek-harness
+    namespace: aiops-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deepseek-harness-config
+  namespace: aiops-test
+data:
+  cordis.patch.yml: |
+    - id: llm-pi-ai
+      name: "@deepseek-ai/dsh-llm-pi-ai"
+      config:
+        providers:
+          aiops-model:
+            displayName: AIOps Model
+            api: openai-completions
+            baseURL: __AIOPS_MODEL_BASE_URL__
+            models:
+              - id: __AIOPS_MODEL_ID__
+            apiKeyEnv: AIOPS_MODEL_API_KEY
+    - id: agent-default-model
+      name: "@deepseek-ai/dsh-agent-default-model"
+      config:
+        provider: aiops-model
+        model: __AIOPS_MODEL_ID__
+    - id: system-prompt
+      config:
+        personaPrefix: >-
+          你是公司内部 Kubernetes 集群运维智能体。始终使用简体中文回答。
+          集群查询与管理优先调用 kubernetes MCP 工具；需要 MCP 未覆盖的操作时，使用容器中已安装的 kubectl、helm、jq、bash 和 curl。
+          已配置集群管理员身份及 in-cluster kubeconfig，不要下载工具、索要凭证或自行创建身份。
+          先查询再判断；修改资源前说明目标、影响和回滚方法，得到用户明确指令后执行。
+          优先使用 MCP 的 get、describe、logs、rollout、patch、Helm 等工具定位和处理问题；必要时使用 kubectl 命令。
+          遇到应用管理或运维规范问题，如已接入知识库，先检索对应手册再结合实时集群状态回答。
+          集群使用说明可在 /guide 查看。
+    # 后续知识库 MCP 条目可通过额外 cordis patch 插入，无需改动登录入口。
+    - insert:
+        - id: mcp-kubernetes
+          name: "@deepseek-ai/dsh-mcp-client"
+          config:
+            serverName: kubernetes
+            transport: stdio
+            command: /usr/local/bin/mcp-server-kubernetes
+            env:
+              KUBECONFIG_PATH: /data/dsh/kube/config
+              PATH: /usr/local/bin:/usr/bin:/bin
+              HOME: /workspace
+            startupTimeoutMs: 30000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepseek-harness
+  namespace: aiops-test
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: deepseek-harness
+  template:
+    metadata:
+      labels:
+        app: deepseek-harness
+    spec:
+      serviceAccountName: deepseek-harness
+      automountServiceAccountToken: true
+      initContainers:
+        - name: setup-config
+          image: aiops/deepseek-harness:custom-v2
+          imagePullPolicy: Never
+          command:
+            - sh
+            - -ec
+            - |
+              mkdir -p /data/dsh/profiles/web /data/dsh/kube /workspace
+              chmod 700 /data/dsh /workspace
+              cp /config/cordis.patch.yml /data/dsh/profiles/web/cordis.patch.yml
+              if test -f /seed/.credentials.yaml; then
+                cp /seed/.credentials.yaml /data/dsh/.credentials.yaml
+                chmod 600 /data/dsh/.credentials.yaml
+              fi
+              cat > /data/dsh/kube/config <<EOF
+              apiVersion: v1
+              kind: Config
+              clusters:
+              - name: local
+                cluster:
+                  server: https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+                  certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              users:
+              - name: harness
+                user:
+                  tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+              contexts:
+              - name: local
+                context:
+                  cluster: local
+                  user: harness
+              current-context: local
+              EOF
+              chmod 600 /data/dsh/kube/config
+          volumeMounts:
+            - name: data
+              mountPath: /data/dsh
+            - name: workspace
+              mountPath: /workspace
+            - name: config
+              mountPath: /config
+            - name: browser-session
+              mountPath: /seed
+              readOnly: true
+      containers:
+        - name: harness
+          image: aiops/deepseek-harness:custom-v2
+          imagePullPolicy: Never
+          env:
+            - name: PUBLIC_URL
+              value: http://__AIOPS_NODE_IP__:31884/
+            - name: KUBECONFIG
+              value: /data/dsh/kube/config
+            - name: HOME
+              value: /workspace
+            - name: AIOPS_MODEL_API_KEY
+              value: unused
+          ports:
+            - containerPort: 3080
+          volumeMounts:
+            - name: data
+              mountPath: /data/dsh
+            - name: workspace
+              mountPath: /workspace
+            - name: launch-token
+              mountPath: /run/dsh
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {cpu: "2", memory: 3Gi}
+        - name: login-gateway
+          image: aiops/deepseek-harness:custom-v2
+          imagePullPolicy: Never
+          command: ["node", "/opt/aiops/gateway.mjs"]
+          env:
+            - name: LOGIN_USERNAME
+              valueFrom: {secretKeyRef: {name: deepseek-harness-login, key: username}}
+            - name: LOGIN_SALT
+              valueFrom: {secretKeyRef: {name: deepseek-harness-login, key: salt}}
+            - name: LOGIN_HASH
+              valueFrom: {secretKeyRef: {name: deepseek-harness-login, key: hash}}
+            - name: LOGIN_SESSION_KEY
+              valueFrom: {secretKeyRef: {name: deepseek-harness-login, key: sessionKey}}
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: launch-token
+              mountPath: /run/dsh
+              readOnly: true
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+      volumes:
+        - name: config
+          configMap: {name: deepseek-harness-config}
+        - name: browser-session
+          secret: {secretName: deepseek-harness-browser-session, optional: true}
+        - name: data
+          hostPath:
+            path: __AIOPS_DATA_DIR__/data
+            type: DirectoryOrCreate
+        - name: workspace
+          hostPath:
+            path: __AIOPS_DATA_DIR__/workspace
+            type: DirectoryOrCreate
+        - name: launch-token
+          emptyDir: {medium: Memory}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepseek-harness
+  namespace: aiops-test
+spec:
+  type: NodePort
+  selector:
+    app: deepseek-harness
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 31884

@@ -1,0 +1,14 @@
+FROM aiops/deepseek-harness:0.2.2-rc.1-r2
+
+RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirrors.aliyun.com/alpine#g' /etc/apk/repositories \
+    && apk add --no-cache jq openssh-client ca-certificates \
+    && npm install --global --omit=dev --no-audit --no-fund mcp-server-kubernetes@4.2.1 \
+    && npm cache clean --force
+COPY kubectl helm /usr/local/bin/
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/helm \
+    && kubectl version --client && helm version --short
+COPY gateway.mjs launcher.mjs hash-password.mjs guide.html login.html /opt/aiops/
+ENV DSH_HOME=/data/dsh
+WORKDIR /workspace
+EXPOSE 3080 8080
+CMD ["node", "/opt/aiops/launcher.mjs"]
