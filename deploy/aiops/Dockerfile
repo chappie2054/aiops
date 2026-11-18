@@ -18,6 +18,9 @@ RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirrors.aliyun.com/a
     && kubectl version --client && helm version --short
 
 COPY gateway.mjs launcher.mjs hash-password.mjs guide.html login.html /opt/aiops/
+COPY rca/scan.mjs rca/SKILL.md /opt/aiops/rca/
+COPY seed/bootstrap.mjs /opt/aiops/seed/bootstrap.mjs
+COPY seed/cases/ /opt/aiops/seed/cases/
 ENV DSH_HOME=/data/dsh
 WORKDIR /workspace
 EXPOSE 3080 8080

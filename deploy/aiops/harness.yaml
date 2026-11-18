@@ -33,17 +33,17 @@ data:
       name: "@deepseek-ai/dsh-llm-pi-ai"
       config:
         providers:
-          aiops-model:
+          huadian-qwen:
             displayName: AIOps Model
             api: openai-completions
             baseURL: __AIOPS_MODEL_BASE_URL__
             models:
               - id: __AIOPS_MODEL_ID__
-            apiKeyEnv: AIOPS_MODEL_API_KEY
+            apiKeyEnv: HUADIAN_QWEN_API_KEY
     - id: agent-default-model
       name: "@deepseek-ai/dsh-agent-default-model"
       config:
-        provider: aiops-model
+        provider: huadian-qwen
         model: __AIOPS_MODEL_ID__
     - id: system-prompt
       config:
@@ -86,18 +86,22 @@ spec:
       labels:
         app: deepseek-harness
     spec:
+      nodeName: __AIOPS_STORAGE_NODE__
       serviceAccountName: deepseek-harness
       automountServiceAccountToken: true
       initContainers:
         - name: setup-config
-          image: aiops/deepseek-harness:custom-v2
+          image: aiops/deepseek-harness:custom-v8
           imagePullPolicy: Never
           command:
             - sh
             - -ec
             - |
-              mkdir -p /data/dsh/profiles/web /data/dsh/kube /workspace
+              mkdir -p /data/dsh/profiles/web /data/dsh/kube /data/dsh/skills/aiops-root-cause-analysis /workspace/aiops-rca/reports
               chmod 700 /data/dsh /workspace
+              cp /opt/aiops/rca/scan.mjs /workspace/aiops-rca/scan.mjs
+              cp /opt/aiops/rca/SKILL.md /data/dsh/skills/aiops-root-cause-analysis/SKILL.md
+              node /opt/aiops/seed/bootstrap.mjs
               cp /config/cordis.patch.yml /data/dsh/profiles/web/cordis.patch.yml
               if test -f /seed/.credentials.yaml; then
                 cp /seed/.credentials.yaml /data/dsh/.credentials.yaml
@@ -135,7 +139,7 @@ spec:
               readOnly: true
       containers:
         - name: harness
-          image: aiops/deepseek-harness:custom-v2
+          image: aiops/deepseek-harness:custom-v8
           imagePullPolicy: Never
           env:
             - name: PUBLIC_URL
@@ -144,7 +148,9 @@ spec:
               value: /data/dsh/kube/config
             - name: HOME
               value: /workspace
-            - name: AIOPS_MODEL_API_KEY
+            - name: AIOPS_RCA_NAMESPACES
+              value: __AIOPS_RCA_NAMESPACES__
+            - name: HUADIAN_QWEN_API_KEY
               value: unused
           ports:
             - containerPort: 3080
@@ -159,7 +165,7 @@ spec:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}
         - name: login-gateway
-          image: aiops/deepseek-harness:custom-v2
+          image: aiops/deepseek-harness:custom-v8
           imagePullPolicy: Never
           command: ["node", "/opt/aiops/gateway.mjs"]
           env:

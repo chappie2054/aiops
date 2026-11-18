@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-rca-test-image-pull
+  namespace: privatization
+  labels:
+    app.kubernetes.io/part-of: aiops-rca-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: aiops-rca-test-image-pull}
+  template:
+    metadata:
+      labels: {app: aiops-rca-test-image-pull}
+    spec:
+      containers:
+        - name: app
+          image: registry.invalid/aiops-rca-test/missing:v1
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aiops-rca-test-startup-crash
+  namespace: privatization
+  labels:
+    app.kubernetes.io/part-of: aiops-rca-test
+spec:
+  restartPolicy: Always
+  containers:
+    - name: app
+      image: aiops/deepseek-harness:custom-v8
+      imagePullPolicy: Never
+      command: ["/bin/sh", "-c", "echo RCA_TEST_STARTUP_FAILURE; exit 42"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aiops-rca-test-unschedulable
+  namespace: privatization
+  labels:
+    app.kubernetes.io/part-of: aiops-rca-test
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    aiops-rca-test-node: deliberately-absent
+  containers:
+    - name: app
+      image: aiops/deepseek-harness:custom-v8
+      imagePullPolicy: Never

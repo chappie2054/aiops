@@ -2,30 +2,40 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-image="aiops/deepseek-harness:custom-v2"
+image="aiops/deepseek-harness:custom-v8"
 namespace="aiops-test"
-archive="${script_dir}/deepseek-harness-custom-v2.tar.gz"
+archive="${script_dir}/deepseek-harness-custom-v8.tar.gz"
 
 : "${AIOPS_NODE_IP:?请提供 AIOPS_NODE_IP（供浏览器访问的节点 IP）}"
 : "${AIOPS_MODEL_BASE_URL:?请提供 AIOPS_MODEL_BASE_URL（OpenAI 兼容模型地址）}"
 : "${AIOPS_MODEL_ID:?请提供 AIOPS_MODEL_ID（模型标识）}"
 : "${AIOPS_DATA_DIR:?请提供 AIOPS_DATA_DIR（宿主机持久化目录）}"
+AIOPS_RCA_NAMESPACES="${AIOPS_RCA_NAMESPACES:-privatization}"
 [[ "${AIOPS_NODE_IP}" =~ ^[0-9.]+$ ]] || { echo 'AIOPS_NODE_IP 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_MODEL_BASE_URL}" =~ ^https?://[A-Za-z0-9._:/-]+$ ]] || { echo 'AIOPS_MODEL_BASE_URL 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_MODEL_ID}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'AIOPS_MODEL_ID 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_DATA_DIR}" =~ ^/[A-Za-z0-9_./-]+$ ]] || { echo 'AIOPS_DATA_DIR 格式不正确' >&2; exit 1; }
+[[ "${AIOPS_RCA_NAMESPACES}" =~ ^[a-z0-9-]+(,[a-z0-9-]+)*$ ]] || { echo 'AIOPS_RCA_NAMESPACES 格式不正确' >&2; exit 1; }
+for tool in docker kubectl openssl; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
+if [[ -z "${AIOPS_STORAGE_NODE:-}" ]]; then
+  read -r -a nodes <<< "$(kubectl get nodes -o jsonpath='{.items[*].metadata.name}')"
+  [[ "${#nodes[@]}" -eq 1 ]] || { echo '多节点集群请指定保存 hostPath 数据的 AIOPS_STORAGE_NODE' >&2; exit 1; }
+  AIOPS_STORAGE_NODE="${nodes[0]}"
+fi
+[[ "${AIOPS_STORAGE_NODE}" =~ ^[a-zA-Z0-9.-]+$ ]] || { echo 'AIOPS_STORAGE_NODE 格式不正确' >&2; exit 1; }
 manifest="$(mktemp)"
 trap 'rm -f "${manifest}"' EXIT
 sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
     -e "s|__AIOPS_MODEL_BASE_URL__|${AIOPS_MODEL_BASE_URL}|g" \
     -e "s|__AIOPS_MODEL_ID__|${AIOPS_MODEL_ID}|g" \
     -e "s|__AIOPS_DATA_DIR__|${AIOPS_DATA_DIR}|g" \
+    -e "s|__AIOPS_RCA_NAMESPACES__|${AIOPS_RCA_NAMESPACES}|g" \
+    -e "s|__AIOPS_STORAGE_NODE__|${AIOPS_STORAGE_NODE}|g" \
     "${script_dir}/harness.yaml" > "${manifest}"
 
-for tool in docker kubectl openssl; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
 if [[ -f "${archive}" ]]; then
   for tool in gzip sha256sum; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
-  echo "cc6486a4c6126e7e21bc523793c182fa0be77c96461555cf8252f39791040cf1  ${archive}" | sha256sum -c -
+  echo "320e3749b57d491ddfa01529e850cfbb92723591551ac4edd71277f6b081c814  ${archive}" | sha256sum -c -
   gzip -dc "${archive}" | docker load
 fi
 docker image inspect "${image}" >/dev/null
