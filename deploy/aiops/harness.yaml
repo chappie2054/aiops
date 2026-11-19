@@ -94,7 +94,7 @@ spec:
       automountServiceAccountToken: true
       initContainers:
         - name: setup-config
-          image: aiops/deepseek-harness:custom-v14
+          image: aiops/workbench:v15
           imagePullPolicy: Never
           command:
             - sh
@@ -142,7 +142,7 @@ spec:
               readOnly: true
       containers:
         - name: harness
-          image: aiops/deepseek-harness:custom-v14
+          image: aiops/workbench:v15
           imagePullPolicy: Never
           env:
             - name: PUBLIC_URL
@@ -168,7 +168,7 @@ spec:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}
         - name: login-gateway
-          image: aiops/deepseek-harness:custom-v14
+          image: aiops/workbench:v15
           imagePullPolicy: Never
           command: ["node", "/opt/aiops/gateway.mjs"]
           env:
