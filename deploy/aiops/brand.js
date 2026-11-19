@@ -42,6 +42,20 @@ function setTitle() {
   if (updated !== current) title.textContent = updated
 }
 
+function brandHero() {
+  for (const headline of document.querySelectorAll('span')) {
+    if (headline.textContent?.trim() !== '探索未至之境' || headline.children.length) continue
+    const titleGroup = headline.parentElement
+    const brandMark = titleGroup?.previousElementSibling
+    if (!titleGroup || !brandMark) continue
+    headline.textContent = productName
+    if (titleGroup.lastElementChild?.textContent?.trim() === '预览版') titleGroup.lastElementChild.remove()
+    brandMark.replaceChildren()
+    brandMark.id = 'aiops-hero-mark'
+    brandMark.textContent = 'A'
+  }
+}
+
 function dismissUnusedKeyPrompt() {
   for (const dialog of document.querySelectorAll('[role="dialog"]')) {
     if (!dialog.textContent?.includes('添加一个 API Key 开始使用')) continue
@@ -59,6 +73,7 @@ function queue(node) {
     frame = 0
     for (const item of pending) replaceCopy(item)
     pending.clear()
+    brandHero()
     setTitle()
     dismissUnusedKeyPrompt()
   })

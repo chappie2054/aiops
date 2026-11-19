@@ -100,7 +100,7 @@ function proxy(request, response) {
     upstreamResponse.on('data', chunk => chunks.push(chunk))
     upstreamResponse.on('end', () => {
       let page = Buffer.concat(chunks).toString('utf8')
-      const head = '<link rel="icon" type="image/svg+xml" href="/aiops/favicon.svg"><link rel="stylesheet" href="/aiops/brand.css"><script defer src="/aiops/brand.js"></script>'
+      const head = '<link rel="icon" type="image/svg+xml" href="/aiops/favicon.svg"><link rel="stylesheet" href="/aiops/brand.css?v=14"><script defer src="/aiops/brand.js?v=14"></script>'
       page = page.includes('</head>') ? page.replace('</head>', `${head}</head>`) : `${head}${page}`
       const form = '<form id="aiops-logout" method="post" action="/logout"><button type="submit">退出登录</button></form>'
       page = page.includes('</body>') ? page.replace('</body>', `${form}</body>`) : `${page}${form}`
@@ -137,9 +137,9 @@ const server = http.createServer((request, response) => {
   }
   if (request.method === 'GET' && request.url?.startsWith('/aiops/')) {
     const files = { '/aiops/brand.css': ['brand.css', 'text/css'], '/aiops/brand.js': ['brand.js', 'text/javascript'], '/aiops/favicon.svg': ['favicon.svg', 'image/svg+xml'] }
-    const asset = files[request.url]
+    const asset = files[request.url.split('?')[0]]
     if (!asset) { response.writeHead(404); return response.end() }
-    response.writeHead(200, { 'Content-Type': `${asset[1]}; charset=utf-8`, 'Cache-Control': 'public, max-age=3600' })
+    response.writeHead(200, { 'Content-Type': `${asset[1]}; charset=utf-8`, 'Cache-Control': 'no-store' })
     return response.end(fs.readFileSync(new URL(`./${asset[0]}`, import.meta.url)))
   }
   if (request.method === 'POST' && request.url === '/logout') {

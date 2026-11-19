@@ -29,7 +29,7 @@ spec:
   restartPolicy: Always
   containers:
     - name: app
-      image: aiops/deepseek-harness:custom-v12
+      image: aiops/deepseek-harness:custom-v14
       imagePullPolicy: Never
       command: ["/bin/sh", "-c", "echo RCA_TEST_STARTUP_FAILURE; exit 42"]
 ---
@@ -46,5 +46,5 @@ spec:
     aiops-rca-test-node: deliberately-absent
   containers:
     - name: app
-      image: aiops/deepseek-harness:custom-v12
+      image: aiops/deepseek-harness:custom-v14
       imagePullPolicy: Never

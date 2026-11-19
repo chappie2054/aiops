@@ -17,7 +17,7 @@ bash install.sh
 
 上面四项必填。模型 URL 应指向兼容接口的基础路径，通常以 `/v1` 结尾；模型 ID 对应其 `/models` 返回值。当前交付配置适用于无需 API Key 的兼容接口。可选参数有 `AIOPS_RCA_NAMESPACES`（逗号分隔的巡检命名空间）、`AIOPS_STORAGE_NODE`（多节点集群的数据节点）、`AIOPS_USERNAME` 和 `AIOPS_PASSWORD`（安装时配置登录账号）。安装脚本复用已有登录配置；需要主动更新时指定 `AIOPS_ROTATE_LOGIN=true`。调整模型地址或 ID 后重新运行安装脚本即可更新集群 ConfigMap。
 
-镜像归档 `deepseek-harness-custom-v12.tar.gz` 的 SHA-256 为 `2eed7d8f601e186a72480ea0b8df0b1a77dcc042ff90445aa9720523dbe75432`，安装脚本会在加载前校验。将归档、YAML 与脚本放在同一目录即可集成到现有安装包。安装机需要 Docker、kubectl、openssl；运行中的工作台不需要临时下载工具。
+镜像归档 `deepseek-harness-custom-v14.tar.gz` 的 SHA-256 为 `f1bf36f26535d6f2422a10162474b6f6376ea5ac8405046e1c7b8d98bea5d46d`，安装脚本会在加载前校验。将归档、YAML 与脚本放在同一目录即可集成到现有安装包。安装机需要 Docker、kubectl、openssl；运行中的工作台不需要临时下载工具。
 
 ## 数据与卸载
 
