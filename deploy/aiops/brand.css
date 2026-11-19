@@ -20,8 +20,8 @@
 }
 #aiops-logout {
   position: fixed;
-  top: 10px;
-  right: 14px;
+  bottom: 60px;
+  left: 12px;
   z-index: 2147483646;
   margin: 0;
 }
