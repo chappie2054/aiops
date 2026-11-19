@@ -2,9 +2,9 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-image="aiops/deepseek-harness:custom-v8"
+image="aiops/deepseek-harness:custom-v11"
 namespace="aiops-test"
-archive="${script_dir}/deepseek-harness-custom-v8.tar.gz"
+archive="${script_dir}/deepseek-harness-custom-v11.tar.gz"
 
 : "${AIOPS_NODE_IP:?请提供 AIOPS_NODE_IP（供浏览器访问的节点 IP）}"
 : "${AIOPS_MODEL_BASE_URL:?请提供 AIOPS_MODEL_BASE_URL（OpenAI 兼容模型地址）}"
@@ -35,7 +35,7 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
 
 if [[ -f "${archive}" ]]; then
   for tool in gzip sha256sum; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
-  echo "320e3749b57d491ddfa01529e850cfbb92723591551ac4edd71277f6b081c814  ${archive}" | sha256sum -c -
+  echo "a013199b3c592bc44bd9e1aa2b5a5d70b57de3248f25c22e5a10fbbac25aa416  ${archive}" | sha256sum -c -
   gzip -dc "${archive}" | docker load
 fi
 docker image inspect "${image}" >/dev/null

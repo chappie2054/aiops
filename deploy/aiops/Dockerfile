@@ -17,7 +17,7 @@ RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirrors.aliyun.com/a
     && rm -rf /tmp/helm.tar.gz "/tmp/linux-${TARGETARCH}" \
     && kubectl version --client && helm version --short
 
-COPY gateway.mjs launcher.mjs hash-password.mjs guide.html login.html /opt/aiops/
+COPY gateway.mjs launcher.mjs hash-password.mjs guide.html login.html brand.css brand.js favicon.svg /opt/aiops/
 COPY rca/scan.mjs rca/SKILL.md /opt/aiops/rca/
 COPY seed/bootstrap.mjs /opt/aiops/seed/bootstrap.mjs
 COPY seed/cases/ /opt/aiops/seed/cases/

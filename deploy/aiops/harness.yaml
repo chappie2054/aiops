@@ -45,6 +45,9 @@ data:
       config:
         provider: huadian-qwen
         model: __AIOPS_MODEL_ID__
+    - id: ui-settings-models
+      config:
+        credentialOnboarding: false
     - id: system-prompt
       config:
         personaPrefix: >-
@@ -91,7 +94,7 @@ spec:
       automountServiceAccountToken: true
       initContainers:
         - name: setup-config
-          image: aiops/deepseek-harness:custom-v8
+          image: aiops/deepseek-harness:custom-v11
           imagePullPolicy: Never
           command:
             - sh
@@ -139,7 +142,7 @@ spec:
               readOnly: true
       containers:
         - name: harness
-          image: aiops/deepseek-harness:custom-v8
+          image: aiops/deepseek-harness:custom-v11
           imagePullPolicy: Never
           env:
             - name: PUBLIC_URL
@@ -165,7 +168,7 @@ spec:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}
         - name: login-gateway
-          image: aiops/deepseek-harness:custom-v8
+          image: aiops/deepseek-harness:custom-v11
           imagePullPolicy: Never
           command: ["node", "/opt/aiops/gateway.mjs"]
           env:

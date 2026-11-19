@@ -50,7 +50,7 @@ function authorized(request) {
 
 function loginPage(response, error = false) {
   const template = fs.readFileSync(new URL('./login.html', import.meta.url), 'utf8')
-  response.writeHead(error ? 401 : 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'" })
+  response.writeHead(error ? 401 : 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'" })
   response.end(template.replace('{{ERROR}}', error ? '<p class="error">账号或密码错误，请重试。</p>' : ''))
 }
 
@@ -79,6 +79,7 @@ function launchToken() {
 function proxy(request, response) {
   const headers = { ...request.headers }
   delete headers.authorization
+  headers['accept-encoding'] = 'identity'
   const upstream = http.request({ hostname: upstreamHost, port: upstreamPort, method: request.method, path: request.url, headers }, upstreamResponse => {
     if (request.method === 'GET' && request.url === '/' && upstreamResponse.statusCode === 401) {
       upstreamResponse.resume()
@@ -89,15 +90,33 @@ function proxy(request, response) {
         return
       }
     }
-    response.writeHead(upstreamResponse.statusCode || 502, upstreamResponse.headers)
-    upstreamResponse.pipe(response)
+    const html = request.method === 'GET' && upstreamResponse.statusCode === 200 && String(upstreamResponse.headers['content-type'] || '').includes('text/html') && !upstreamResponse.headers['content-encoding']
+    if (!html) {
+      response.writeHead(upstreamResponse.statusCode || 502, upstreamResponse.headers)
+      upstreamResponse.pipe(response)
+      return
+    }
+    const chunks = []
+    upstreamResponse.on('data', chunk => chunks.push(chunk))
+    upstreamResponse.on('end', () => {
+      let page = Buffer.concat(chunks).toString('utf8')
+      const head = '<link rel="icon" type="image/svg+xml" href="/aiops/favicon.svg"><link rel="stylesheet" href="/aiops/brand.css"><script defer src="/aiops/brand.js"></script>'
+      page = page.includes('</head>') ? page.replace('</head>', `${head}</head>`) : `${head}${page}`
+      const form = '<form id="aiops-logout" method="post" action="/logout"><button type="submit">退出登录</button></form>'
+      page = page.includes('</body>') ? page.replace('</body>', `${form}</body>`) : `${page}${form}`
+      const responseHeaders = { ...upstreamResponse.headers, 'cache-control': 'no-store' }
+      delete responseHeaders['content-length']
+      delete responseHeaders.etag
+      response.writeHead(200, responseHeaders)
+      response.end(page)
+    })
   })
   upstream.on('error', () => { if (!response.headersSent) response.writeHead(503); response.end('Harness is starting') })
   request.pipe(upstream)
 }
 
 function guide(response) {
-  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Set-Cookie': 'aiops_guide_seen=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'" })
+  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Set-Cookie': 'aiops_guide_seen=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'" })
   response.end(fs.readFileSync(new URL('./guide.html', import.meta.url)))
 }
 
@@ -107,14 +126,29 @@ const server = http.createServer((request, response) => {
     return
   }
   if (request.method === 'GET' && request.url === '/login') return loginPage(response)
+  if (request.method === 'GET' && request.url === '/aiops/favicon.svg') {
+    response.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+    return response.end(fs.readFileSync(new URL('./favicon.svg', import.meta.url)))
+  }
   if (!authorized(request)) {
     if (request.method === 'GET' && (request.url === '/' || request.url === '/guide')) return loginPage(response)
     response.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
     return response.end('请先登录集群管理工作台。')
   }
+  if (request.method === 'GET' && request.url?.startsWith('/aiops/')) {
+    const files = { '/aiops/brand.css': ['brand.css', 'text/css'], '/aiops/brand.js': ['brand.js', 'text/javascript'], '/aiops/favicon.svg': ['favicon.svg', 'image/svg+xml'] }
+    const asset = files[request.url]
+    if (!asset) { response.writeHead(404); return response.end() }
+    response.writeHead(200, { 'Content-Type': `${asset[1]}; charset=utf-8`, 'Cache-Control': 'public, max-age=3600' })
+    return response.end(fs.readFileSync(new URL(`./${asset[0]}`, import.meta.url)))
+  }
   if (request.method === 'POST' && request.url === '/logout') {
     response.writeHead(303, { Location: '/login', 'Set-Cookie': 'aiops_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', 'Cache-Control': 'no-store' })
     return response.end()
+  }
+  if (request.method === 'GET' && request.url === '/manifest.webmanifest') {
+    response.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8', 'Cache-Control': 'no-store' })
+    return response.end(JSON.stringify({ name: 'AIOps 运维平台', short_name: 'AIOps', start_url: '/', display: 'standalone', icons: [{ src: '/aiops/favicon.svg', sizes: 'any', type: 'image/svg+xml' }] }))
   }
   if (request.url === '/guide') return guide(response)
   if (request.url === '/' && !request.headers.cookie?.includes('aiops_guide_seen=1')) {

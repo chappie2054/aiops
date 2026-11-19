@@ -1,4 +1,16 @@
 <!doctype html>
-<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登录集群运维工作台</title>
-<style>body{font:16px/1.5 system-ui,sans-serif;min-height:100vh;margin:0;display:grid;place-items:center;background:#10141d;color:#ecf1fa}main{width:min(400px,calc(100vw - 48px));background:#1b2331;border:1px solid #344158;border-radius:18px;padding:32px;box-shadow:0 20px 60px #0005}h1{font-size:1.7rem;margin:0 0 8px}p{color:#aebdd1;margin:0 0 26px}label{display:block;font-size:.92rem;margin:18px 0 7px}input{box-sizing:border-box;width:100%;border:1px solid #52627a;border-radius:9px;padding:12px;background:#10141d;color:#fff;font:inherit}input:focus{outline:2px solid #5886f4}button{width:100%;border:0;border-radius:9px;padding:12px;margin-top:26px;background:#4079f5;color:#fff;font:inherit;font-weight:600;cursor:pointer}.error{color:#ffaaa9;margin:18px 0 0}</style>
-<main><h1>集群运维工作台</h1><p>使用独立账号登录，进入 DeepSeek Harness 管理集群。</p><form method="post" action="/login"><label for="username">账号</label><input id="username" name="username" autocomplete="username" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">登录</button></form>{{ERROR}}</main></html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>登录 AIOps 运维平台</title><link rel="icon" type="image/svg+xml" href="/aiops/favicon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;background:#f4f6f4;color:#1c2922;font:15px/1.5 system-ui,sans-serif}
+header{padding:25px max(5vw,24px);background:#fff;border-bottom:1px solid #dde4de;display:flex;align-items:center;gap:11px;font-weight:650;font-size:17px}.mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:#1f5f4b;color:#fff;font-weight:700}
+main{align-self:center;justify-self:center;width:min(420px,calc(100vw - 40px));padding:34px;border:1px solid #d9e1da;border-radius:13px;background:#fff;box-shadow:0 12px 34px #1b35231a}h1{margin:0 0 6px;font-size:23px;letter-spacing:-.02em}p{margin:0 0 25px;color:#66746a}label{display:block;margin:17px 0 6px;font-size:14px;font-weight:600}
+input{width:100%;padding:11px 12px;border:1px solid #bfcac1;border-radius:7px;background:#fff;color:#1c2922;font:inherit}input:focus{outline:2px solid #1f5f4b;outline-offset:1px}button{width:100%;margin-top:26px;padding:11px 14px;border:0;border-radius:7px;background:#1f5f4b;color:#fff;font:600 15px/1.4 system-ui,sans-serif;cursor:pointer}button:hover{background:#184c3b}.error{margin:15px 0 0;color:#a52b2b}footer{padding:20px;text-align:center;color:#819087;font-size:12px}
+</style>
+</head>
+<body><header><span class="mark" aria-hidden="true">A</span>AIOps 运维平台</header>
+<main><h1>登录工作台</h1><p>使用运维平台账号访问集群管理功能。</p>
+<form method="post" action="/login"><label for="username">账号</label><input id="username" name="username" autocomplete="username" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">登录</button></form>{{ERROR}}</main>
+<footer>集群运维工作台</footer></body></html>
