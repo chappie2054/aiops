@@ -94,8 +94,8 @@ spec:
       automountServiceAccountToken: true
       initContainers:
         - name: setup-config
-          image: aiops/workbench:v15
-          imagePullPolicy: Never
+          image: __AIOPS_IMAGE__
+          imagePullPolicy: __AIOPS_PULL_POLICY__
           command:
             - sh
             - -ec
@@ -142,8 +142,8 @@ spec:
               readOnly: true
       containers:
         - name: harness
-          image: aiops/workbench:v15
-          imagePullPolicy: Never
+          image: __AIOPS_IMAGE__
+          imagePullPolicy: __AIOPS_PULL_POLICY__
           env:
             - name: PUBLIC_URL
               value: http://__AIOPS_NODE_IP__:31884/
@@ -168,8 +168,8 @@ spec:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}
         - name: login-gateway
-          image: aiops/workbench:v15
-          imagePullPolicy: Never
+          image: __AIOPS_IMAGE__
+          imagePullPolicy: __AIOPS_PULL_POLICY__
           command: ["node", "/opt/aiops/gateway.mjs"]
           env:
             - name: LOGIN_USERNAME

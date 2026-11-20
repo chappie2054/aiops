@@ -2,9 +2,14 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-image="aiops/workbench:v15"
+image="${AIOPS_IMAGE:-registry-szzn-registry.cn-hangzhou.cr.aliyuncs.com/tools/aiops-workbench:v15}"
 namespace="aiops-test"
-archive="${script_dir}/aiops-workbench-v15.tar.gz"
+case "$(uname -m)" in
+  x86_64|amd64) host_arch=amd64 ;;
+  aarch64|arm64) host_arch=arm64 ;;
+  *) host_arch="$(uname -m)" ;;
+esac
+archive="${AIOPS_IMAGE_ARCHIVE:-${script_dir}/$(basename "${image}" | tr ':' '-')-${host_arch}.tar.gz}"
 
 : "${AIOPS_NODE_IP:?请提供 AIOPS_NODE_IP（供浏览器访问的节点 IP）}"
 : "${AIOPS_MODEL_BASE_URL:?请提供 AIOPS_MODEL_BASE_URL（OpenAI 兼容模型地址）}"
@@ -16,6 +21,7 @@ AIOPS_RCA_NAMESPACES="${AIOPS_RCA_NAMESPACES:-privatization}"
 [[ "${AIOPS_MODEL_ID}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'AIOPS_MODEL_ID 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_DATA_DIR}" =~ ^/[A-Za-z0-9_./-]+$ ]] || { echo 'AIOPS_DATA_DIR 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_RCA_NAMESPACES}" =~ ^[a-z0-9-]+(,[a-z0-9-]+)*$ ]] || { echo 'AIOPS_RCA_NAMESPACES 格式不正确' >&2; exit 1; }
+[[ "${image}" =~ ^[a-zA-Z0-9._:/-]+$ ]] || { echo 'AIOPS_IMAGE 格式不正确' >&2; exit 1; }
 for tool in docker kubectl openssl; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
 if [[ -z "${AIOPS_STORAGE_NODE:-}" ]]; then
   read -r -a nodes <<< "$(kubectl get nodes -o jsonpath='{.items[*].metadata.name}')"
@@ -31,12 +37,24 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
     -e "s|__AIOPS_DATA_DIR__|${AIOPS_DATA_DIR}|g" \
     -e "s|__AIOPS_RCA_NAMESPACES__|${AIOPS_RCA_NAMESPACES}|g" \
     -e "s|__AIOPS_STORAGE_NODE__|${AIOPS_STORAGE_NODE}|g" \
+    -e "s|__AIOPS_IMAGE__|${image}|g" \
+    -e "s|__AIOPS_PULL_POLICY__|IfNotPresent|g" \
     "${script_dir}/harness.yaml" > "${manifest}"
 
-if [[ -f "${archive}" ]]; then
+# 镜像来源依次为：本机已有镜像、同目录离线归档、镜像仓库。归档必须带同名 .sha256 校验文件。
+if docker image inspect "${image}" >/dev/null 2>&1; then
+  echo "使用本机已有镜像 ${image}"
+elif [[ -f "${archive}" ]]; then
   for tool in gzip sha256sum; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
-  echo "19ed127a56aece88b3f708a10ecef5ef65d381ec909cfbf0d9702243c762e6c9  ${archive}" | sha256sum -c -
-  gzip -dc "${archive}" | docker load
+  [[ -f "${archive}.sha256" ]] || { echo "缺少归档校验文件 ${archive}.sha256" >&2; exit 1; }
+  ( cd "$(dirname "${archive}")" && sha256sum -c "$(basename "${archive}").sha256" )
+  loaded="$(gzip -dc "${archive}" | docker load | sed -n 's/^Loaded image: //p' | tail -1)"
+  [[ -n "${loaded}" ]] || { echo '镜像归档中没有可用的镜像' >&2; exit 1; }
+  [[ "${loaded}" == "${image}" ]] || docker tag "${loaded}" "${image}"
+  echo "已从归档 ${archive} 导入镜像"
+else
+  echo "从镜像仓库拉取 ${image}"
+  docker pull "${image}"
 fi
 docker image inspect "${image}" >/dev/null
 kubectl apply -f "${manifest}" --dry-run=client >/dev/null
