@@ -1,6 +1,6 @@
 # AIOps Kubernetes 运维工作台交付
 
-交付目录包含一个完整镜像归档、`harness.yaml`、`install.sh` 和 `uninstall.sh`。镜像内置 Web 工作台、登录网关、Kubernetes MCP、kubectl、Helm、定时根因巡检及两个入门案例。浏览器入口为 `http://<节点 IP>:31884/`。
+交付目录包含按架构划分的完整镜像归档、`harness.yaml`、`install.sh` 和 `uninstall.sh`。镜像内置 Web 工作台、登录网关、Kubernetes MCP、kubectl、Helm、定时根因巡检及两个入门案例。浏览器入口为 `http://<节点 IP>:31884/`。
 
 ## 安装与模型配置
 
@@ -17,7 +17,7 @@ bash install.sh
 
 上面四项必填。模型 URL 应指向兼容接口的基础路径，通常以 `/v1` 结尾；模型 ID 对应其 `/models` 返回值。当前交付配置适用于无需 API Key 的兼容接口。可选参数有 `AIOPS_RCA_NAMESPACES`（逗号分隔的巡检命名空间）、`AIOPS_STORAGE_NODE`（多节点集群的数据节点）、`AIOPS_USERNAME` 和 `AIOPS_PASSWORD`（安装时配置登录账号）。安装脚本复用已有登录配置；需要主动更新时指定 `AIOPS_ROTATE_LOGIN=true`。调整模型地址或 ID 后重新运行安装脚本即可更新集群 ConfigMap。
 
-镜像默认从 `registry-szzn-registry.cn-hangzhou.cr.aliyuncs.com/tools/aiops-workbench:v15` 获取，该标签是多架构清单，安装节点按自身架构自动选择 amd64 或 arm64；用 `AIOPS_IMAGE` 可以换成别的镜像。获取顺序是本机已有镜像、同目录离线归档、镜像仓库。离线归档命名为 `aiops-workbench-v15-<arch>.tar.gz`（`arch` 取 `amd64` 或 `arm64`），必须带同名 `.sha256` 校验文件；归档存在但缺少校验文件时安装脚本直接退出。用 `AIOPS_IMAGE_ARCHIVE` 可指定其他归档路径。节点必须能访问该镜像仓库；使用 containerd 运行时的集群还要为该仓库配置 imagePullSecret。安装机需要 Docker、kubectl、openssl；运行中的工作台不需要临时下载工具。
+私有化交付不依赖镜像仓库：`install.sh` 默认用 `docker load -i` 导入交付包里的归档，按架构选择 `aiops-workbench-v15-<arch>.tar.gz`（`arch` 取 `amd64` 或 `arm64`），归档必须带同名 `.sha256`，缺失或校验失败会直接退出。导入后的镜像标签是 `aiops/workbench:v15`，清单使用 `imagePullPolicy: Never`，节点既不访问也不需要镜像仓库。用 `AIOPS_IMAGE` 可以改镜像标签，用 `AIOPS_IMAGE_ARCHIVE` 可以指定归档路径。只有显式设置 `AIOPS_PULL=true` 时才从 `AIOPS_IMAGE` 指向的仓库拉取，这时清单改用 `IfNotPresent`。多节点集群要把归档导入 Pod 实际所在的节点。安装机需要 Docker、kubectl、openssl；运行中的工作台不需要临时下载工具。
 
 ## 数据与卸载
 

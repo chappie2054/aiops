@@ -2,14 +2,15 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-image="${AIOPS_IMAGE:-registry-szzn-registry.cn-hangzhou.cr.aliyuncs.com/tools/aiops-workbench:v15}"
+image="${AIOPS_IMAGE:-aiops/workbench:v15}"
 namespace="aiops-test"
+pull_policy=Never
 case "$(uname -m)" in
   x86_64|amd64) host_arch=amd64 ;;
   aarch64|arm64) host_arch=arm64 ;;
   *) host_arch="$(uname -m)" ;;
 esac
-archive="${AIOPS_IMAGE_ARCHIVE:-${script_dir}/$(basename "${image}" | tr ':' '-')-${host_arch}.tar.gz}"
+archive="${AIOPS_IMAGE_ARCHIVE:-${script_dir}/$(printf '%s' "${image}" | tr '/:' '--')-${host_arch}.tar.gz}"
 
 : "${AIOPS_NODE_IP:?请提供 AIOPS_NODE_IP（供浏览器访问的节点 IP）}"
 : "${AIOPS_MODEL_BASE_URL:?请提供 AIOPS_MODEL_BASE_URL（OpenAI 兼容模型地址）}"
@@ -29,6 +30,36 @@ if [[ -z "${AIOPS_STORAGE_NODE:-}" ]]; then
   AIOPS_STORAGE_NODE="${nodes[0]}"
 fi
 [[ "${AIOPS_STORAGE_NODE}" =~ ^[a-zA-Z0-9.-]+$ ]] || { echo 'AIOPS_STORAGE_NODE 格式不正确' >&2; exit 1; }
+
+# 私有化交付不带镜像仓库：默认从交付包里的归档 docker load -i，镜像标签固定在本机。
+# 只有显式设置 AIOPS_PULL=true 才从仓库拉取，此时才允许 kubelet 自己拉镜像。
+if docker image inspect "${image}" >/dev/null 2>&1; then
+  echo "使用本机已有镜像 ${image}"
+elif [[ -f "${archive}" ]]; then
+  command -v sha256sum >/dev/null || { echo '缺少 sha256sum' >&2; exit 1; }
+  [[ -f "${archive}.sha256" ]] || { echo "缺少归档校验文件 ${archive}.sha256" >&2; exit 1; }
+  ( cd "$(dirname "${archive}")" && sha256sum -c "$(basename "${archive}").sha256" )
+  load_output="$(docker load -i "${archive}")"
+  printf '%s\n' "${load_output}"
+  loaded="$(printf '%s\n' "${load_output}" | sed -n 's/^Loaded image: //p' | tail -1)"
+  if [[ -z "${loaded}" ]]; then
+    loaded="$(printf '%s\n' "${load_output}" | sed -n 's/^Loaded image ID: //p' | tail -1)"
+  fi
+  [[ -n "${loaded}" ]] || { echo "镜像归档 ${archive} 中没有可用的镜像" >&2; exit 1; }
+  [[ "${loaded}" == "${image}" ]] || docker tag "${loaded}" "${image}"
+  echo "已从归档 ${archive} 导入镜像 ${image}"
+elif [[ "${AIOPS_PULL:-false}" == true ]]; then
+  echo "从镜像仓库拉取 ${image}"
+  docker pull "${image}"
+  pull_policy=IfNotPresent
+else
+  echo "找不到镜像 ${image}，也没有找到归档 ${archive}。" >&2
+  echo '请把交付包里的镜像归档与同名 .sha256 放在本脚本同目录，或用 AIOPS_IMAGE_ARCHIVE 指定归档路径。' >&2
+  echo '需要直接从镜像仓库拉取时设置 AIOPS_PULL=true。' >&2
+  exit 1
+fi
+docker image inspect "${image}" >/dev/null
+
 manifest="$(mktemp)"
 trap 'rm -f "${manifest}"' EXIT
 sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
@@ -38,25 +69,9 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
     -e "s|__AIOPS_RCA_NAMESPACES__|${AIOPS_RCA_NAMESPACES}|g" \
     -e "s|__AIOPS_STORAGE_NODE__|${AIOPS_STORAGE_NODE}|g" \
     -e "s|__AIOPS_IMAGE__|${image}|g" \
-    -e "s|__AIOPS_PULL_POLICY__|IfNotPresent|g" \
+    -e "s|__AIOPS_PULL_POLICY__|${pull_policy}|g" \
     "${script_dir}/harness.yaml" > "${manifest}"
 
-# 镜像来源依次为：本机已有镜像、同目录离线归档、镜像仓库。归档必须带同名 .sha256 校验文件。
-if docker image inspect "${image}" >/dev/null 2>&1; then
-  echo "使用本机已有镜像 ${image}"
-elif [[ -f "${archive}" ]]; then
-  for tool in gzip sha256sum; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
-  [[ -f "${archive}.sha256" ]] || { echo "缺少归档校验文件 ${archive}.sha256" >&2; exit 1; }
-  ( cd "$(dirname "${archive}")" && sha256sum -c "$(basename "${archive}").sha256" )
-  loaded="$(gzip -dc "${archive}" | docker load | sed -n 's/^Loaded image: //p' | tail -1)"
-  [[ -n "${loaded}" ]] || { echo '镜像归档中没有可用的镜像' >&2; exit 1; }
-  [[ "${loaded}" == "${image}" ]] || docker tag "${loaded}" "${image}"
-  echo "已从归档 ${archive} 导入镜像"
-else
-  echo "从镜像仓库拉取 ${image}"
-  docker pull "${image}"
-fi
-docker image inspect "${image}" >/dev/null
 kubectl apply -f "${manifest}" --dry-run=client >/dev/null
 kubectl get namespace "${namespace}" >/dev/null 2>&1 || kubectl create namespace "${namespace}"
 
