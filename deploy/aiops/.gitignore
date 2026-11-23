@@ -6,5 +6,3 @@
 /helm
 /.credentials.yaml
 /.env
-/HOST-OPERATIONS-DESIGN.md
-/host-diagnostic-pod.yaml
