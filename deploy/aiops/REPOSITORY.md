@@ -13,7 +13,7 @@
 | `packages/` | Harness 原有插件与 MCP 客户端 | 当前 AIOps 未修改 |
 | `deploy/aiops/runbooks/`（规划） | 应用管理与运维手册 | 后续按业务版本增加 |
 
-当前测试镜像 `aiops/deepseek-harness:custom-v2` 使用官方发布的 Harness `0.2.2-rc.1` 包，并加入本目录的网关、MCP、kubectl 和 Helm。它**不是**从本 fork 的 `apps/`、`packages/` 源码编译的。`Dockerfile.cached-base` 还依赖测试环境已有的基础镜像及本地提供的二进制文件；仅克隆仓库不能重复构建这条路径。`Dockerfile` 可独立下载官方发布包，但其完整构建尚未在当前环境验证。修改 Harness 前端或核心后，需要另建并验证源码构建流程，才能让改动进入交付镜像。
+交付镜像 `aiops/workbench:v15` 使用官方发布的 Harness `0.2.2-rc.1` 包，并加入本目录的网关、MCP、kubectl、Helm、定时巡检和演示数据。它**不是**从本 fork 的 `apps/`、`packages/` 源码编译的。`Dockerfile` 从官方发布包构建，已在 amd64 上验证；`Dockerfile.arm64` 从交付归档构建，已在 arm64 节点验证。两条路径都以 koffi 能否加载作为构建门禁（原因见 [DEVELOPMENT.md](DEVELOPMENT.md)）。`Dockerfile.cached-base` 依赖测试环境已有的基础镜像及本地提供的二进制文件，仅克隆仓库不能重复构建。修改 Harness 前端或核心后，需要另建并验证源码构建流程，才能让改动进入交付镜像。
 
 后续自有 MCP 实现优先放在 `deploy/aiops/mcp/` 等独立目录，按 Harness MCP 客户端配置接入。若必须调用 Harness 内部 API，再按其插件规范添加 workspace package。应用运维手册可放在 `deploy/aiops/runbooks/`，与版本一同维护；运行时知识检索、索引和数据更新机制需要单独实现与验收。现有 Kubernetes MCP 可管理集群资源；宿主机 `docker load` 的完整发布流程仍需单独完成测试。
 
