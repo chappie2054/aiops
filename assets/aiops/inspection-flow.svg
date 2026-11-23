@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">AIOps 自动巡检流程</title>
+  <desc id="desc">定时任务读取业务命名空间，采集 Kubernetes 状态、事件和日志，生成带证据的中文根因报告，并保存在工作台。</desc>
+  <rect width="1200" height="300" rx="22" fill="#111827"/>
+  <text x="44" y="53" fill="#f8fafc" font-family="Arial,Microsoft YaHei,sans-serif" font-size="24" font-weight="700">从集群信号到可验证的故障结论</text>
+  <text x="44" y="82" fill="#94a3b8" font-family="Arial,Microsoft YaHei,sans-serif" font-size="15">默认每 15 分钟巡检，也可在会话中发起排查</text>
+  <g font-family="Arial,Microsoft YaHei,sans-serif">
+    <rect x="44" y="116" width="246" height="140" rx="15" fill="#1d2939" stroke="#334155"/>
+    <rect x="60" y="133" width="65" height="26" rx="13" fill="#1d4d66"/>
+    <text x="78" y="151" fill="#a9e6ff" font-size="13" font-weight="700">01</text>
+    <text x="60" y="190" fill="#f8fafc" font-size="21" font-weight="700">设定巡检范围</text>
+    <text x="60" y="222" fill="#a8b7c8" font-size="15">指定业务命名空间与周期</text>
+    <path d="M301 185h34m-9-9 9 9-9 9" fill="none" stroke="#70b8d5" stroke-width="3" stroke-linecap="round"/>
+    <rect x="347" y="116" width="246" height="140" rx="15" fill="#1d2939" stroke="#334155"/>
+    <rect x="363" y="133" width="65" height="26" rx="13" fill="#1d4d66"/>
+    <text x="381" y="151" fill="#a9e6ff" font-size="13" font-weight="700">02</text>
+    <text x="363" y="190" fill="#f8fafc" font-size="21" font-weight="700">采集真实证据</text>
+    <text x="363" y="222" fill="#a8b7c8" font-size="15">副本、Pod、事件和应用日志</text>
+    <path d="M604 185h34m-9-9 9 9-9 9" fill="none" stroke="#70b8d5" stroke-width="3" stroke-linecap="round"/>
+    <rect x="650" y="116" width="246" height="140" rx="15" fill="#1d2939" stroke="#334155"/>
+    <rect x="666" y="133" width="65" height="26" rx="13" fill="#1d4d66"/>
+    <text x="684" y="151" fill="#a9e6ff" font-size="13" font-weight="700">03</text>
+    <text x="666" y="190" fill="#f8fafc" font-size="21" font-weight="700">分析根因</text>
+    <text x="666" y="222" fill="#a8b7c8" font-size="15">区分事实、推断与缺失证据</text>
+    <path d="M907 185h34m-9-9 9 9-9 9" fill="none" stroke="#70b8d5" stroke-width="3" stroke-linecap="round"/>
+    <rect x="953" y="116" width="203" height="140" rx="15" fill="#17362f" stroke="#397b65"/>
+    <rect x="969" y="133" width="65" height="26" rx="13" fill="#245b4c"/>
+    <text x="987" y="151" fill="#b5efce" font-size="13" font-weight="700">04</text>
+    <text x="969" y="190" fill="#f8fafc" font-size="21" font-weight="700">形成报告</text>
+    <text x="969" y="222" fill="#b9d5c7" font-size="15">中文展示并持久保存</text>
+  </g>
+</svg>
