@@ -2,7 +2,7 @@
 
 面向私有化 Kubernetes 集群的 AI 运维工作台。运维人员可以在浏览器中用自然语言查询和管理集群；定时巡检会采集真实状态、事件与日志，形成可追溯的中文故障分析。产品以镜像、Kubernetes 清单和安装脚本交付，可并入现有一键部署包。
 
-![自动巡检从集群采集证据到生成报告的流程](assets/aiops/inspection-flow.svg)
+![自动巡检从集群采集证据到生成报告的流程](assets/aiops/inspection-flow.png)
 
 ## 主要功能
 
@@ -28,7 +28,7 @@
 
 报告先列出集群可核实的事实，再给出推断与待核对项；下面的服务名称和数据仅用于展示报告结构。
 
-![自动根因分析报告示意图](assets/aiops/report-example.svg)
+![自动根因分析报告示意图](assets/aiops/report-example.png)
 
 ## 部署
 
