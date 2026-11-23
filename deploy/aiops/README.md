@@ -32,3 +32,8 @@ bash install.sh
 ARM64 交付镜像用 `Dockerfile.arm64` 在 arm64 节点上原生构建：`docker build -f Dockerfile.arm64 -t aiops/workbench:v15 .`。构建上下文需要带 `kubectl` 和 `helm`（本环境的节点访问不了 `dl.k8s.io`，直接从已部署镜像里取这两个二进制）。ARM64 与 amd64 两个架构分别构建后用多架构清单发布到同一个 `v15` 标签。
 
 Alpine 上的 koffi 3.1.1 会优先解析 `@koromix/koffi-<platform>` 包，而该包的入口是 glibc 产物；在 musl 下加载它会抛 `std::system_error` 并中止进程，表现为 harness 容器每次创建会话时 `terminate called after throwing an instance of 'std::system_error'`。`Dockerfile` 和 `Dockerfile.arm64` 因此把 musl 产物覆盖到 glibc 路径，并以能否 `require` koffi 作为构建门禁；缺这一步的镜像会在第一次创建会话时退出，而不是启动时报错。
+
+## 相关文档
+
+- [DEVELOPMENT.md](DEVELOPMENT.md)：分支与提交规范、两种架构的构建流程、本地启动开发与验证清单。
+- [REPOSITORY.md](REPOSITORY.md)：仓库职责、上游合并方式与发布边界。

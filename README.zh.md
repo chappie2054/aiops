@@ -8,6 +8,18 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 
 文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
+## AIOps 交付 fork（本仓库的额外内容）
+
+本 fork 交付 AIOps Kubernetes 运维工作台，交付件在 [`deploy/aiops/`](deploy/aiops/)：镜像构建入口、固定账号登录网关、Kubernetes MCP、定时根因巡检、集群清单与一键安装脚本。
+
+| 需要做什么 | 看哪里 |
+| --- | --- |
+| 安装、卸载、模型配置 | [deploy/aiops/README.md](deploy/aiops/README.md) |
+| 分支规范、构建镜像、本地启动开发 | [deploy/aiops/DEVELOPMENT.md](deploy/aiops/DEVELOPMENT.md) |
+| 仓库维护与上游合并 | [deploy/aiops/REPOSITORY.md](deploy/aiops/REPOSITORY.md) |
+
+`master` 是交付基线，受保护，改动走 `feat/*`、`fix/*` 分支加合并请求。远端 `origin` 是内部 codeup 仓库（交付来源），`github` 是镜像，`upstream` 是官方 dsh。
+
 ## 开发者预览
 
 DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
