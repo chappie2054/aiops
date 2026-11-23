@@ -31,4 +31,6 @@ git merge upstream/master
 
 ## 发布边界
 
-ARM64 交付镜像在目标节点上原生构建后发布到 `registry-szzn-registry.cn-hangzhou.cr.aliyuncs.com/tools/aiops-workbench`，标签同时包含交付版本号和提交短 SHA。Git 提交标识源码版本；镜像标签应包含该提交的短 SHA。CI 或打包机从该提交构建镜像，把镜像归档与 `harness.yaml`、`install.sh`、校验文件组成离线安装包。安装时由外部注入登录密码，不把密码写入 Git、镜像或 YAML。当前 `custom-v2` 是已验证的测试版本；源码构建与自动发布流程尚未接入，因此不能把它称作从本 fork 可复现的一键构建。
+ARM64 交付镜像在目标节点上原生构建后发布到 `registry-szzn-registry.cn-hangzhou.cr.aliyuncs.com/tools/aiops-workbench`，标签同时包含交付版本号和提交短 SHA。Git 提交标识源码版本；镜像标签应包含该提交的短 SHA。CI 或打包机从该提交构建镜像，把镜像归档与 `harness.yaml`、`install.sh`、校验文件组成离线安装包。安装时由外部注入登录密码，不把密码写入 Git、镜像或 YAML。
+
+交付包放在仓库外的 `delivery/aiops-v15/`：两种架构的镜像归档与 `.sha256`、清单、安装与卸载脚本、说明文件。`deploy/aiops/` 只保留脚本、Dockerfile 和文档，不放镜像归档；被取代的历史包在 `archive/superseded-2026-11-23/`，可直接删除。当前 `v15` 是已验证的交付版本；源码构建与自动发布流程尚未接入，因此不能把它称作从本 fork 可复现的一键构建。
