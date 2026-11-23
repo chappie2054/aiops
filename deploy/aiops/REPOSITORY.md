@@ -1,6 +1,8 @@
 # AIOps 单仓库维护说明
 
-本 fork 是 AIOps 的唯一源码仓库。`origin` 指向 `chappie2054/aiops`，`upstream` 指向 `deepseek-ai/deepseek-harness`。仓库保存程序、部署清单、安装脚本、测试和运维手册；镜像归档、密码、Kubernetes Secret、会话数据、模型文件与宿主机日志不提交到 Git。
+本 fork 是 AIOps 的唯一源码仓库。`origin` 指向内部仓库 `codeup.aliyun.com/62cf7f0b487c500c27f70f94/aiops`，`github` 指向 `chappie2054/aiops`（镜像），`upstream` 指向 `deepseek-ai/deepseek-harness`。仓库保存程序、部署清单、安装脚本、测试和运维手册；镜像归档、密码、Kubernetes Secret、会话数据、模型文件与宿主机日志不提交到 Git。
+
+内部仓库不接受浅克隆推送（`shallow update not allowed`）。在这台机器上首次同步前先补全历史：`git fetch --unshallow github`，然后用 `git push origin master` 推送到内部仓库；GitHub 镜像用 `git push github master`。
 
 ## 当前代码与部署的关系
 
