@@ -33,9 +33,7 @@ fi
 
 # 私有化交付不带镜像仓库：默认从交付包里的归档 docker load -i，镜像标签固定在本机。
 # 只有显式设置 AIOPS_PULL=true 才从仓库拉取，此时才允许 kubelet 自己拉镜像。
-if docker image inspect "${image}" >/dev/null 2>&1; then
-  echo "使用本机已有镜像 ${image}"
-elif [[ -f "${archive}" ]]; then
+if [[ -f "${archive}" ]]; then
   command -v sha256sum >/dev/null || { echo '缺少 sha256sum' >&2; exit 1; }
   [[ -f "${archive}.sha256" ]] || { echo "缺少归档校验文件 ${archive}.sha256" >&2; exit 1; }
   ( cd "$(dirname "${archive}")" && sha256sum -c "$(basename "${archive}").sha256" )
@@ -48,6 +46,8 @@ elif [[ -f "${archive}" ]]; then
   [[ -n "${loaded}" ]] || { echo "镜像归档 ${archive} 中没有可用的镜像" >&2; exit 1; }
   [[ "${loaded}" == "${image}" ]] || docker tag "${loaded}" "${image}"
   echo "已从归档 ${archive} 导入镜像 ${image}"
+elif docker image inspect "${image}" >/dev/null 2>&1; then
+  echo "没有交付归档，使用本机已有镜像 ${image}"
 elif [[ "${AIOPS_PULL:-false}" == true ]]; then
   echo "从镜像仓库拉取 ${image}"
   docker pull "${image}"
@@ -74,6 +74,16 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
 
 kubectl apply -f "${manifest}" --dry-run=client >/dev/null
 kubectl get namespace "${namespace}" >/dev/null 2>&1 || kubectl create namespace "${namespace}"
+# Preserve an existing key on repeat installs unless a new one is supplied.
+# The current internal model needs no key; "unused" satisfies the provider's required env var.
+model_key_updated=false
+if [[ -n "${AIOPS_MODEL_API_KEY:-}" ]] || ! kubectl get secret aiops-model-api-key -n "${namespace}" >/dev/null 2>&1; then
+  printf '%s' "${AIOPS_MODEL_API_KEY:-unused}" |
+    kubectl create secret generic aiops-model-api-key -n "${namespace}" \
+      --from-file=apiKey=/dev/stdin --dry-run=client -o yaml |
+    kubectl apply -f - >/dev/null
+  model_key_updated=true
+fi
 
 if ! kubectl get secret deepseek-harness-login -n "${namespace}" >/dev/null 2>&1 || [[ "${AIOPS_ROTATE_LOGIN:-false}" == true ]]; then
   username="${AIOPS_USERNAME:-aiopsadmin}"
@@ -101,6 +111,9 @@ else
 fi
 
 kubectl apply -f "${manifest}"
+if [[ "${model_key_updated}" == true ]]; then
+  kubectl rollout restart deployment/deepseek-harness -n "${namespace}" >/dev/null
+fi
 kubectl rollout status deployment/deepseek-harness -n "${namespace}" --timeout=240s
 
 if ! kubectl get secret deepseek-harness-browser-session -n "${namespace}" >/dev/null 2>&1; then

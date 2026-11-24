@@ -32,7 +32,7 @@
 
 ## 部署
 
-交付包中的 `install.sh`、`harness.yaml`、对应架构的镜像归档和同名 `.sha256` 文件放在同一目录。目标节点需要 Docker、kubectl、openssl，安装脚本会校验并导入镜像、创建登录配置、部署到 Kubernetes 并等待工作负载就绪。**部署时无需再下载 kubectl、Helm 或工作台依赖。**
+交付包中的 `install.sh`、`harness.yaml`、amd64 与 arm64 两份镜像归档及各自同名的 `.sha256` 文件放在同一目录。目标节点需要 Docker、kubectl、openssl，安装脚本会校验并导入镜像、创建登录配置、部署到 Kubernetes 并等待工作负载就绪。**部署时无需再下载 kubectl、Helm 或工作台依赖。**
 
 ```bash
 cd delivery/aiops-v15
@@ -44,7 +44,7 @@ AIOPS_RCA_NAMESPACES='<业务命名空间，多个用逗号分隔>' \
 bash install.sh
 ```
 
-单节点集群自动选择数据节点；多节点集群还需设置 `AIOPS_STORAGE_NODE`，并确保镜像已加载到该节点。首次安装可传入 `AIOPS_USERNAME`、`AIOPS_PASSWORD`；未指定密码时脚本会生成并打印。当前交付配置使用无需 API Key 的模型接口。浏览器入口为 `http://<节点 IP>:31884/`，使用说明位于 `/guide`。
+单节点集群自动选择数据节点；多节点集群还需设置 `AIOPS_STORAGE_NODE`，并确保镜像已加载到该节点。首次安装可传入 `AIOPS_USERNAME`、`AIOPS_PASSWORD`；未指定密码时脚本会生成并打印。当前内部模型接口无需 API Key；更换为需要鉴权的接口时，可在安装提示中填写或预设 `AIOPS_MODEL_API_KEY`。密钥保存在 Kubernetes Secret 中。浏览器入口为 `http://<节点 IP>:31884/`，使用说明位于 `/guide`。
 
 `<AIOPS_DATA_DIR>/data` 保存会话、定时任务和设置，`<AIOPS_DATA_DIR>/workspace` 保存工作区文件；两者通过 `hostPath` 挂载。执行 `bash uninstall.sh` 会卸载本产品的集群资源，保留宿主机数据。完整参数、镜像构建、验收和分支流程见 [交付与开发说明](deploy/aiops/BUILDING.md)。
 

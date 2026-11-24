@@ -26,6 +26,11 @@ if [[ -z "${AIOPS_MODEL_ID:-}" ]]; then
 fi
 : "${AIOPS_MODEL_BASE_URL:?模型接口地址不能为空}"
 : "${AIOPS_MODEL_ID:?模型 ID 不能为空}"
+if [[ -z "${AIOPS_MODEL_API_KEY:-}" && -t 0 ]]; then
+  read -r -s -p 'AIOps 模型 API Key（无则直接回车）: ' AIOPS_MODEL_API_KEY
+  echo
+  export AIOPS_MODEL_API_KEY
+fi
 
 # The main installer loads images on its first master. Pin hostPath and the AIOps Pod
 # to that node, including in the three-master deployment mode.

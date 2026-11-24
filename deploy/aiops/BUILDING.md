@@ -6,7 +6,7 @@
 
 ### 并入高级运管平台主安装脚本
 
-将本交付目录完整复制为 shizai-Install-dep/aiops/，与主脚本 main.sh 同属一个工作目录。目录内应包含 install-from-shizai.sh、install.sh、harness.yaml、对应架构的镜像归档及同名 .sha256 文件。
+将本交付目录完整复制为 shizai-Install-dep/aiops/，与主脚本 main.sh 同属一个工作目录。目录内应包含 install-from-shizai.sh、install.sh、harness.yaml、amd64、arm64 两份镜像归档及各自同名的 .sha256 文件。
 
 主脚本读入 NodeCount 后，增加默认安装的选择项：
 
@@ -28,17 +28,18 @@ if [ "$InstallAIOps" -eq 1 ]; then
 fi
 ```
 
-适配脚本复用主脚本的 outsideip 作为 Web 访问 IP，复用 AppDir 建立 AppDir/aiops 宿主机持久化目录，并按 MasterIP 在集群中找到主节点；单机和高可用模式都把 Pod 与数据固定在该节点，AIOps 安装脚本会在该节点导入镜像。巡检命名空间默认为 privatization。模型接口 URL 和模型 ID 无法从现有 suanfaip 推导，安装 AIOps 时会单独提示；也可在启动 main.sh 前设置 AIOPS_MODEL_BASE_URL、AIOPS_MODEL_ID，实现非交互安装。其他 AIOPS_* 参数仍可预先通过环境变量覆盖。首次安装若不指定 AIOPS_PASSWORD，安装脚本会生成并打印密码，请保存安装输出。跳过 AIOps 不会调用交付目录中的任何脚本。
+适配脚本复用主脚本的 outsideip 作为 Web 访问 IP，复用 AppDir 建立 AppDir/aiops 宿主机持久化目录，并按 MasterIP 在集群中找到主节点；单机和高可用模式都把 Pod 与数据固定在该节点，AIOps 安装脚本会在该节点导入镜像。巡检命名空间默认为 privatization。模型接口 URL 和模型 ID 无法从现有 suanfaip 推导，安装 AIOps 时会单独提示；也可在启动 main.sh 前设置 AIOPS_MODEL_BASE_URL、AIOPS_MODEL_ID，实现非交互安装。模型 API Key 可选：免密接口在提示时直接回车；需要鉴权时输入或预设 AIOPS_MODEL_API_KEY。其他 AIOPS_* 参数仍可预先通过环境变量覆盖。首次安装若不指定 AIOPS_PASSWORD，安装脚本会生成并打印密码，请保存安装输出。跳过 AIOps 不会调用交付目录中的任何脚本。
 
 若显式设置 AIOPS_STORAGE_NODE 为其他节点，必须先在该节点导入相同镜像并准备持久化目录。NodePort 31884 需在访问路径上放通，且不得与现有服务冲突。首次集成先在与正式部署相同架构的测试节点验收登录、Pod 就绪、巡检任务和 Pod 重建后的数据保留。
 
-安装机需要 Docker、kubectl、openssl、sha256sum 和可用的集群管理员 kubeconfig。`install.sh`、`harness.yaml`、对应架构的镜像归档及同名 `.sha256` 文件应放在同一目录。
+安装机需要 Docker、kubectl、openssl、sha256sum 和可用的集群管理员 kubeconfig。`install.sh`、`harness.yaml`、双架构镜像归档及各自同名 `.sha256` 文件应放在同一目录；运行时按节点架构选择归档。
 
 | 变量 | 要求 | 说明 |
 | --- | --- | --- |
 | `AIOPS_NODE_IP` | 必填 | 浏览器访问的节点 IP，入口使用 NodePort `31884` |
 | `AIOPS_MODEL_BASE_URL` | 必填 | 内部 OpenAI 兼容模型接口基础 URL，通常以 `/v1` 结尾 |
 | `AIOPS_MODEL_ID` | 必填 | 模型 ID，应与接口 `/models` 返回值一致 |
+| `AIOPS_MODEL_API_KEY` | 可选 | 模型接口密钥；免密接口留空。首次安装写入 Kubernetes Secret，重装时未提供新值则保留原值 |
 | `AIOPS_DATA_DIR` | 必填 | 宿主机持久化目录；下设 `data`、`workspace` |
 | `AIOPS_RCA_NAMESPACES` | 建议显式指定 | 逗号分隔的巡检命名空间；未传时沿用测试环境默认值 |
 | `AIOPS_STORAGE_NODE` | 多节点必填 | 保存 hostPath 的节点名，镜像也须加载在该节点 |
@@ -48,7 +49,7 @@ fi
 | `AIOPS_IMAGE_ARCHIVE` | 可选 | 指定镜像归档路径 |
 | `AIOPS_PULL` | 可选 | 仅设为 `true` 时允许从镜像仓库拉取 |
 
-脚本先检查本机镜像，再检查同目录归档，最后才考虑显式允许的仓库拉取。归档按架构命名 `aiops-workbench-v15-<arch>.tar.gz`，由 `uname -m` 自动选择；加载前校验 `.sha256`。默认清单使用 `imagePullPolicy: Never`，目标节点不需要镜像仓库。卸载脚本保留宿主机持久化目录、命名空间与本地镜像。
+交付包内有归档时，脚本先校验并加载归档，即使本机已有同名镜像也会更新；没有归档时才使用本机已有镜像，最后才考虑显式允许的仓库拉取。归档按架构命名 `aiops-workbench-v15-<arch>.tar.gz`，由 `uname -m` 自动选择；加载前校验 `.sha256`。模型密钥保存在 `aiops-model-api-key` Secret 中，Pod 通过环境变量读取；更新密钥后安装脚本会重启工作台。默认清单使用 `imagePullPolicy: Never`，目标节点不需要镜像仓库。卸载脚本保留宿主机持久化目录、命名空间与本地镜像。
 
 ## 构建与验收镜像
 

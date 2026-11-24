@@ -154,7 +154,7 @@ spec:
             - name: AIOPS_RCA_NAMESPACES
               value: __AIOPS_RCA_NAMESPACES__
             - name: HUADIAN_QWEN_API_KEY
-              value: unused
+              valueFrom: {secretKeyRef: {name: aiops-model-api-key, key: apiKey}}
           ports:
             - containerPort: 3080
           volumeMounts:
