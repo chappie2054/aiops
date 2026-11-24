@@ -4,6 +4,34 @@
 
 ## 一键安装参数
 
+### 并入高级运管平台主安装脚本
+
+将本交付目录完整复制为 shizai-Install-dep/aiops/，与主脚本 main.sh 同属一个工作目录。目录内应包含 install-from-shizai.sh、install.sh、harness.yaml、对应架构的镜像归档及同名 .sha256 文件。
+
+主脚本读入 NodeCount 后，增加默认安装的选择项：
+
+```bash
+read -r -p '是否安装 AIOps 运维工作台？[Y/n] ' InstallAIOps
+case "${InstallAIOps:-Y}" in
+  [Yy]|[Yy][Ee][Ss]) InstallAIOps=1 ;;
+  [Nn]|[Nn][Oo]) InstallAIOps=0 ;;
+  *) echo '请输入 y 或 n' >&2; exit 1 ;;
+esac
+```
+
+在 main.sh 最后的单机 / 高可用分支结束后追加以下代码。原脚本的无效 NodeCount 分支也应改为 exit 1，避免没有建成集群却继续安装 AIOps：
+
+```bash
+if [ "$InstallAIOps" -eq 1 ]; then
+  export MasterIP outsideip AppDir
+  bash "$WorkDir/aiops/install-from-shizai.sh" || exit 1
+fi
+```
+
+适配脚本复用主脚本的 outsideip 作为 Web 访问 IP，复用 AppDir 建立 AppDir/aiops 宿主机持久化目录，并按 MasterIP 在集群中找到主节点；单机和高可用模式都把 Pod 与数据固定在该节点，AIOps 安装脚本会在该节点导入镜像。巡检命名空间默认为 privatization。模型接口 URL 和模型 ID 无法从现有 suanfaip 推导，安装 AIOps 时会单独提示；也可在启动 main.sh 前设置 AIOPS_MODEL_BASE_URL、AIOPS_MODEL_ID，实现非交互安装。其他 AIOPS_* 参数仍可预先通过环境变量覆盖。首次安装若不指定 AIOPS_PASSWORD，安装脚本会生成并打印密码，请保存安装输出。跳过 AIOps 不会调用交付目录中的任何脚本。
+
+若显式设置 AIOPS_STORAGE_NODE 为其他节点，必须先在该节点导入相同镜像并准备持久化目录。NodePort 31884 需在访问路径上放通，且不得与现有服务冲突。首次集成先在与正式部署相同架构的测试节点验收登录、Pod 就绪、巡检任务和 Pod 重建后的数据保留。
+
 安装机需要 Docker、kubectl、openssl、sha256sum 和可用的集群管理员 kubeconfig。`install.sh`、`harness.yaml`、对应架构的镜像归档及同名 `.sha256` 文件应放在同一目录。
 
 | 变量 | 要求 | 说明 |
