@@ -1,6 +1,13 @@
 # AIOps 交付与开发说明
 
 本页保存安装参数、镜像构建和仓库协作细节。产品功能与界面见[项目首页](../../README.md)。
+## 源头与交付调用链
+
+本仓库的 `deploy/aiops/` 是 AIOps 安装脚本与清单的维护源头。发布时将 `install.sh`、`install-from-shizai.sh`、`uninstall.sh`、`harness.yaml` 同步到 `privatization-deploy/components/aiops/`，并同步到本地交付目录；两个架构的镜像归档及校验文件另行提供，不提交 Git。部署仓库的 `stage-into-package.sh` 校验并复制两份镜像及组件到构建机的 `shizai-Install-dep/aiops/`。三个基础目录的 `main.sh`、`main-algo-new.sh` 由部署仓库维护，修改这些入口时应在部署仓库同步。
+
+主安装脚本读取 `NodeCount` 后询问是否安装 AIOps，默认安装；选择跳过则不调用 AIOps。选择安装时先检查 `aiops/install-from-shizai.sh` 是否存在，原有 Kubernetes 与业务安装完成后导出 `MasterIP`、`outsideip`、`AppDir` 并调用该适配脚本。适配脚本确定浏览器 IP、`${AppDir}/aiops` 持久化路径和主节点，读取或提示模型 URL、模型 ID、可选 API Key，然后调用 `install.sh`。安装脚本按 `uname -m` 选择对应归档，校验并 `docker load`，创建或沿用模型密钥 Secret，渲染清单并部署到 `aiops-test`，等待工作负载就绪。入口为 `http://<outsideip>:31884/`。
+
+上述链路只说明代码调用关系；构建机最终压缩包是否带入 `aiops/`、整包安装及高可用仍需单独验收。模型 API Key 属于运行时配置，更新脚本与清单不需要重建工作台镜像。
 
 ## 一键安装参数
 
