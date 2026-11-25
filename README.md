@@ -44,7 +44,7 @@ AIOPS_RCA_NAMESPACES='<业务命名空间，多个用逗号分隔>' \
 bash install.sh
 ```
 
-单节点集群自动选择数据节点；多节点集群还需设置 `AIOPS_STORAGE_NODE`，并确保镜像已加载到该节点。首次安装可传入 `AIOPS_USERNAME`、`AIOPS_PASSWORD`；未指定密码时交互安装会提示输入，非交互安装会报错。当前内部模型接口无需 API Key；更换为需要鉴权的接口时，可在安装提示中填写或预设 `AIOPS_MODEL_API_KEY`。密钥保存在 Kubernetes Secret 中。浏览器入口为 `http://<节点 IP>:31884/`，使用说明位于 `/guide`。
+单节点集群自动选择数据节点；多节点集群还需设置 `AIOPS_STORAGE_NODE`，并确保镜像已加载到该节点。首次安装可传入 `AIOPS_USERNAME`、`AIOPS_PASSWORD`；默认从安装包 aiops/login-password 读取固定密码，无需输入；可用 AIOPS_PASSWORD 覆盖。当前内部模型接口无需 API Key；更换为需要鉴权的接口时，可在安装提示中填写或预设 `AIOPS_MODEL_API_KEY`。密钥保存在 Kubernetes Secret 中。浏览器入口为 `http://<节点 IP>:31884/`，使用说明位于 `/guide`。
 
 `<AIOPS_DATA_DIR>/data` 保存会话、定时任务和设置，`<AIOPS_DATA_DIR>/workspace` 保存工作区文件；两者通过 `hostPath` 挂载。执行 `bash uninstall.sh` 会卸载本产品的集群资源，保留宿主机数据。完整参数、镜像构建、验收和分支流程见 [交付与开发说明](deploy/aiops/BUILDING.md)。
 

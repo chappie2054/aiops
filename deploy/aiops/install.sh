@@ -89,9 +89,9 @@ if ! kubectl get secret deepseek-harness-login -n "${namespace}" >/dev/null 2>&1
   username="${AIOPS_USERNAME:-aiopsadmin}"
   password="${AIOPS_PASSWORD:-}"
   if [[ -z "${password}" ]]; then
-    [[ -t 0 ]] || { echo '请通过 AIOPS_PASSWORD 提供 AIOps 登录密码' >&2; exit 1; }
-    read -r -s -p '请设置 AIOps 登录密码（不会显示）：' password
-    echo
+    password_file="${AIOPS_PASSWORD_FILE:-${script_dir}/login-password}"
+    [[ -f "${password_file}" && ! -L "${password_file}" ]] || { echo "缺少 AIOps 登录密码文件: ${password_file}" >&2; exit 1; }
+    password="$(<"${password_file}")"
   fi
   [[ -n "${password}" ]] || { echo 'AIOps 登录密码不能为空' >&2; exit 1; }
   [[ "${username}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo '账号只能包含字母、数字、点、下划线和短横线' >&2; exit 1; }
