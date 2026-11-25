@@ -146,7 +146,7 @@ spec:
           imagePullPolicy: __AIOPS_PULL_POLICY__
           env:
             - name: PUBLIC_URL
-              value: http://__AIOPS_NODE_IP__:31884/
+              value: __AIOPS_PUBLIC_URL__
             - name: KUBECONFIG
               value: /data/dsh/kube/config
             - name: HOME
@@ -186,10 +186,24 @@ spec:
             - name: launch-token
               mountPath: /run/dsh
               readOnly: true
+            - name: gateway-overrides
+              mountPath: /opt/aiops/gateway.mjs
+              subPath: gateway.mjs
+              readOnly: true
+            - name: gateway-overrides
+              mountPath: /opt/aiops/login.html
+              subPath: login.html
+              readOnly: true
+            - name: gateway-overrides
+              mountPath: /opt/aiops/guide.html
+              subPath: guide.html
+              readOnly: true
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {cpu: 500m, memory: 256Mi}
       volumes:
+        - name: gateway-overrides
+          configMap: {name: aiops-gateway-overrides}
         - name: config
           configMap: {name: deepseek-harness-config}
         - name: browser-session

@@ -76,4 +76,19 @@ test('fixed login protects guide and exchanges the current launch token', async 
   assert.equal(logout.status, 303)
   assert.equal(logout.headers.get('location'), '/login')
   assert.match(logout.headers.get('set-cookie'), /Max-Age=0/u)
+
+  const forwarded = { 'X-Forwarded-Prefix': '/K7vQ2mT9xR4pL8nC5sH3yW6d' }
+  const prefixedLogin = await fetch(`${base}/login`, { headers: forwarded })
+  assert.match(await prefixedLogin.text(), /action="\/K7vQ2mT9xR4pL8nC5sH3yW6d\/login"/u)
+  const prefixedSessionResponse = await fetch(`${base}/login`, { method: 'POST', headers: forwarded, body: new URLSearchParams({ username: 'admin', password }), redirect: 'manual' })
+  assert.equal(prefixedSessionResponse.headers.get('location'), '/K7vQ2mT9xR4pL8nC5sH3yW6d/guide')
+  assert.match(prefixedSessionResponse.headers.get('set-cookie'), /Path=\/K7vQ2mT9xR4pL8nC5sH3yW6d\//u)
+  const prefixedSession = prefixedSessionResponse.headers.get('set-cookie')?.split(';')[0]
+  const prefixedGuide = await fetch(`${base}/guide`, { headers: { ...forwarded, Cookie: prefixedSession } })
+  assert.match(await prefixedGuide.text(), /href="\/K7vQ2mT9xR4pL8nC5sH3yW6d\/\?open=1"/u)
+  const prefixedOpen = await fetch(`${base}/?open=1`, { headers: { ...forwarded, Cookie: prefixedSession }, redirect: 'manual' })
+  assert.equal(prefixedOpen.headers.get('location'), '/K7vQ2mT9xR4pL8nC5sH3yW6d/?token=abcdefghijklmnopqrstuvwx')
+  const prefixedExchange = await fetch(new URL(prefixedOpen.headers.get('location').replace('/K7vQ2mT9xR4pL8nC5sH3yW6d', ''), base), { headers: { ...forwarded, Cookie: prefixedSession }, redirect: 'manual' })
+  assert.equal(prefixedExchange.headers.get('location'), '/K7vQ2mT9xR4pL8nC5sH3yW6d/')
+  assert.match(prefixedExchange.headers.get('set-cookie'), /Path=\/K7vQ2mT9xR4pL8nC5sH3yW6d\//u)
 })

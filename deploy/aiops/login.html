@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>登录 AIOps 运维平台</title><link rel="icon" type="image/svg+xml" href="/aiops/favicon.svg">
+<title>登录 AIOps 运维平台</title><link rel="icon" type="image/svg+xml" href="{{BASE_PATH}}/aiops/favicon.svg">
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;background:#f4f6f4;color:#1c2922;font:15px/1.5 system-ui,sans-serif}
 header{padding:25px max(5vw,24px);background:#fff;border-bottom:1px solid #dde4de;display:flex;align-items:center;gap:11px;font-weight:650;font-size:17px}.mark{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:#1f5f4b;color:#fff;font-weight:700}
@@ -12,5 +12,5 @@ input{width:100%;padding:11px 12px;border:1px solid #bfcac1;border-radius:7px;ba
 </head>
 <body><header><span class="mark" aria-hidden="true">A</span>AIOps 运维平台</header>
 <main><h1>登录工作台</h1><p>使用运维平台账号访问集群管理功能。</p>
-<form method="post" action="/login"><label for="username">账号</label><input id="username" name="username" autocomplete="username" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">登录</button></form>{{ERROR}}</main>
+<form method="post" action="{{BASE_PATH}}/login"><label for="username">账号</label><input id="username" name="username" autocomplete="username" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">登录</button></form>{{ERROR}}</main>
 <footer>集群运维工作台</footer></body></html>

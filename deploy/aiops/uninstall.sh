@@ -4,9 +4,14 @@ set -euo pipefail
 namespace="${AIOPS_NAMESPACE:-aiops-test}"
 [[ "${namespace}" =~ ^[a-z0-9-]+$ ]] || { echo 'AIOPS_NAMESPACE 格式不正确' >&2; exit 1; }
 command -v kubectl >/dev/null || { echo '缺少 kubectl' >&2; exit 1; }
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "${script_dir}/uninstall-frontend-proxy.sh" ]]; then
+  bash "${script_dir}/uninstall-frontend-proxy.sh"
+fi
 
 kubectl -n "${namespace}" delete deployment/deepseek-harness --ignore-not-found --wait=true
-kubectl -n "${namespace}" delete service/deepseek-harness configmap/deepseek-harness-config serviceaccount/deepseek-harness \
+kubectl -n "${namespace}" delete service/deepseek-harness configmap/deepseek-harness-config configmap/aiops-gateway-overrides serviceaccount/deepseek-harness \
   secret/deepseek-harness-login secret/deepseek-harness-browser-session secret/aiops-model-api-key --ignore-not-found
 kubectl delete clusterrolebinding/deepseek-harness-cluster-admin --ignore-not-found
 

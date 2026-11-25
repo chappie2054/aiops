@@ -17,11 +17,13 @@ archive="${AIOPS_IMAGE_ARCHIVE:-${script_dir}/$(printf '%s' "${image}" | tr '/:'
 : "${AIOPS_MODEL_ID:?请提供 AIOPS_MODEL_ID（模型标识）}"
 : "${AIOPS_DATA_DIR:?请提供 AIOPS_DATA_DIR（宿主机持久化目录）}"
 AIOPS_RCA_NAMESPACES="${AIOPS_RCA_NAMESPACES:-privatization}"
+AIOPS_PUBLIC_URL="${AIOPS_PUBLIC_URL:-http://${AIOPS_NODE_IP}:8089/K7vQ2mT9xR4pL8nC5sH3yW6d/}"
 [[ "${AIOPS_NODE_IP}" =~ ^[0-9.]+$ ]] || { echo 'AIOPS_NODE_IP 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_MODEL_BASE_URL}" =~ ^https?://[A-Za-z0-9._:/-]+$ ]] || { echo 'AIOPS_MODEL_BASE_URL 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_MODEL_ID}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'AIOPS_MODEL_ID 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_DATA_DIR}" =~ ^/[A-Za-z0-9_./-]+$ ]] || { echo 'AIOPS_DATA_DIR 格式不正确' >&2; exit 1; }
 [[ "${AIOPS_RCA_NAMESPACES}" =~ ^[a-z0-9-]+(,[a-z0-9-]+)*$ ]] || { echo 'AIOPS_RCA_NAMESPACES 格式不正确' >&2; exit 1; }
+[[ "${AIOPS_PUBLIC_URL}" =~ ^https?://[A-Za-z0-9.:-]+/K7vQ2mT9xR4pL8nC5sH3yW6d/$ ]] || { echo 'AIOPS_PUBLIC_URL 必须以指定入口路径结尾' >&2; exit 1; }
 [[ "${image}" =~ ^[a-zA-Z0-9._:/-]+$ ]] || { echo 'AIOPS_IMAGE 格式不正确' >&2; exit 1; }
 for tool in docker kubectl openssl; do command -v "${tool}" >/dev/null || { echo "缺少 ${tool}" >&2; exit 1; }; done
 if [[ -z "${AIOPS_STORAGE_NODE:-}" ]]; then
@@ -63,6 +65,7 @@ docker image inspect "${image}" >/dev/null
 manifest="$(mktemp)"
 trap 'rm -f "${manifest}"' EXIT
 sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
+    -e "s|__AIOPS_PUBLIC_URL__|${AIOPS_PUBLIC_URL}|g" \
     -e "s|__AIOPS_MODEL_BASE_URL__|${AIOPS_MODEL_BASE_URL}|g" \
     -e "s|__AIOPS_MODEL_ID__|${AIOPS_MODEL_ID}|g" \
     -e "s|__AIOPS_DATA_DIR__|${AIOPS_DATA_DIR}|g" \
@@ -74,6 +77,12 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
 
 kubectl apply -f "${manifest}" --dry-run=client >/dev/null
 kubectl get namespace "${namespace}" >/dev/null 2>&1 || kubectl create namespace "${namespace}"
+for override in gateway.mjs login.html guide.html; do
+  [[ -f "${script_dir}/${override}" ]] || { echo "缺少网关交付文件 ${script_dir}/${override}" >&2; exit 1; }
+done
+kubectl create configmap aiops-gateway-overrides -n "${namespace}" \
+  --from-file="${script_dir}/gateway.mjs" --from-file="${script_dir}/login.html" --from-file="${script_dir}/guide.html" \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 # Preserve an existing key on repeat installs unless a new one is supplied.
 # The current internal model needs no key; "unused" satisfies the provider's required env var.
 model_key_updated=false
@@ -113,9 +122,7 @@ else
 fi
 
 kubectl apply -f "${manifest}"
-if [[ "${model_key_updated}" == true ]]; then
-  kubectl rollout restart deployment/deepseek-harness -n "${namespace}" >/dev/null
-fi
+kubectl rollout restart deployment/deepseek-harness -n "${namespace}" >/dev/null
 kubectl rollout status deployment/deepseek-harness -n "${namespace}" --timeout=240s
 
 if ! kubectl get secret deepseek-harness-browser-session -n "${namespace}" >/dev/null 2>&1; then
@@ -125,5 +132,5 @@ if ! kubectl get secret deepseek-harness-browser-session -n "${namespace}" >/dev
   kubectl cp "${namespace}/${pod}:/data/dsh/.credentials.yaml" "${credentials}" -c harness
   kubectl create secret generic deepseek-harness-browser-session -n "${namespace}" --from-file=".credentials.yaml=${credentials}"
 fi
-echo "入口: http://${AIOPS_NODE_IP}:31884/"
-echo "使用说明: http://${AIOPS_NODE_IP}:31884/guide"
+echo "入口: ${AIOPS_PUBLIC_URL}"
+echo "使用说明: ${AIOPS_PUBLIC_URL}guide"
