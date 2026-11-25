@@ -77,11 +77,11 @@ sed -e "s|__AIOPS_NODE_IP__|${AIOPS_NODE_IP}|g" \
 
 kubectl apply -f "${manifest}" --dry-run=client >/dev/null
 kubectl get namespace "${namespace}" >/dev/null 2>&1 || kubectl create namespace "${namespace}"
-for override in gateway.mjs login.html guide.html; do
+for override in gateway.mjs launcher.mjs login.html guide.html; do
   [[ -f "${script_dir}/${override}" ]] || { echo "缺少网关交付文件 ${script_dir}/${override}" >&2; exit 1; }
 done
 kubectl create configmap aiops-gateway-overrides -n "${namespace}" \
-  --from-file="${script_dir}/gateway.mjs" --from-file="${script_dir}/login.html" --from-file="${script_dir}/guide.html" \
+  --from-file="${script_dir}/gateway.mjs" --from-file="${script_dir}/launcher.mjs" --from-file="${script_dir}/login.html" --from-file="${script_dir}/guide.html" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 # Preserve an existing key on repeat installs unless a new one is supplied.
 # The current internal model needs no key; "unused" satisfies the provider's required env var.

@@ -147,6 +147,8 @@ spec:
           env:
             - name: PUBLIC_URL
               value: __AIOPS_PUBLIC_URL__
+            - name: AIOPS_DIRECT_AUTHORITY
+              value: __AIOPS_NODE_IP__
             - name: KUBECONFIG
               value: /data/dsh/kube/config
             - name: HOME
@@ -164,6 +166,10 @@ spec:
               mountPath: /workspace
             - name: launch-token
               mountPath: /run/dsh
+            - name: gateway-overrides
+              mountPath: /opt/aiops/launcher.mjs
+              subPath: launcher.mjs
+              readOnly: true
           resources:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}

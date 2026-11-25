@@ -7,8 +7,10 @@ if (!ip) throw new Error('No pod IPv4 address found')
 const publicUrl = process.env.PUBLIC_URL
 if (!publicUrl) throw new Error('PUBLIC_URL is required')
 const authority = new URL(publicUrl).host
+const directAuthority = process.env.AIOPS_DIRECT_AUTHORITY
+const trustedAuthorities = [...new Set([authority, directAuthority].filter(Boolean))]
 const tokenFile = process.env.LAUNCH_TOKEN_FILE || '/run/dsh/launch-token'
-const child = spawn('dsh', ['web', '--no-open', '--host', ip, '--port', '3080', '--public-url', publicUrl, '--trusted-host', authority], { stdio: ['inherit', 'pipe', 'inherit'] })
+const child = spawn('dsh', ['web', '--no-open', '--host', ip, '--port', '3080', '--public-url', publicUrl, '--trusted-host', ...trustedAuthorities], { stdio: ['inherit', 'pipe', 'inherit'] })
 let pending = ''
 child.stdout.setEncoding('utf8')
 child.stdout.on('data', chunk => {
