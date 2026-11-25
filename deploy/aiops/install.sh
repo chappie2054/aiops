@@ -87,7 +87,13 @@ fi
 
 if ! kubectl get secret deepseek-harness-login -n "${namespace}" >/dev/null 2>&1 || [[ "${AIOPS_ROTATE_LOGIN:-false}" == true ]]; then
   username="${AIOPS_USERNAME:-aiopsadmin}"
-  password="${AIOPS_PASSWORD:-$(openssl rand -base64 24)}"
+  password="${AIOPS_PASSWORD:-}"
+  if [[ -z "${password}" ]]; then
+    [[ -t 0 ]] || { echo '请通过 AIOPS_PASSWORD 提供 AIOps 登录密码' >&2; exit 1; }
+    read -r -s -p '请设置 AIOps 登录密码（不会显示）：' password
+    echo
+  fi
+  [[ -n "${password}" ]] || { echo 'AIOps 登录密码不能为空' >&2; exit 1; }
   [[ "${username}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo '账号只能包含字母、数字、点、下划线和短横线' >&2; exit 1; }
   hash_output="$(printf '%s' "${password}" | docker run --rm -i "${image}" node -e 'const{randomBytes,scryptSync}=require("node:crypto");let p="";process.stdin.setEncoding("utf8");process.stdin.on("data",c=>p+=c);process.stdin.on("end",()=>{if(!p)process.exit(1);const s=randomBytes(24).toString("hex");console.log(s);console.log(scryptSync(p,s,64).toString("hex"))})')"
   salt="$(printf '%s\n' "${hash_output}" | sed -n '1p')"
@@ -96,11 +102,7 @@ if ! kubectl get secret deepseek-harness-login -n "${namespace}" >/dev/null 2>&1
   kubectl create secret generic deepseek-harness-login -n "${namespace}" \
     --from-literal="username=${username}" --from-literal="salt=${salt}" --from-literal="hash=${hash}" --from-literal="sessionKey=${session_key}" \
     --dry-run=client -o yaml | kubectl apply -f -
-  if [[ -z "${AIOPS_PASSWORD:-}" ]]; then
-    printf '固定登录账号: %s\n生成的登录密码: %s\n请保存密码。\n' "${username}" "${password}"
-  else
-    printf '固定登录账号已设置: %s\n' "${username}"
-  fi
+  printf 'AIOps 登录账号已设置: %s\n' "${username}"
   kubectl rollout restart deployment/deepseek-harness -n "${namespace}" >/dev/null 2>&1 || true
 else
   echo '沿用现有固定登录账号和密码。'

@@ -35,7 +35,7 @@ if [ "$InstallAIOps" -eq 1 ]; then
 fi
 ```
 
-适配脚本复用主脚本的 outsideip 作为 Web 访问 IP，复用 AppDir 建立 AppDir/aiops 宿主机持久化目录，并按 MasterIP 在集群中找到主节点；单机和高可用模式都把 Pod 与数据固定在该节点，AIOps 安装脚本会在该节点导入镜像。巡检命名空间默认为 privatization。模型接口 URL 和模型 ID 无法从现有 suanfaip 推导，安装 AIOps 时会单独提示；也可在启动 main.sh 前设置 AIOPS_MODEL_BASE_URL、AIOPS_MODEL_ID，实现非交互安装。模型 API Key 可选：免密接口在提示时直接回车；需要鉴权时输入或预设 AIOPS_MODEL_API_KEY。其他 AIOPS_* 参数仍可预先通过环境变量覆盖。首次安装若不指定 AIOPS_PASSWORD，安装脚本会生成并打印密码，请保存安装输出。跳过 AIOps 不会调用交付目录中的任何脚本。
+适配脚本复用主脚本的 outsideip 作为 Web 访问 IP，复用 AppDir 建立 AppDir/aiops 宿主机持久化目录，并按 MasterIP 在集群中找到主节点；单机和高可用模式都把 Pod 与数据固定在该节点，AIOps 安装脚本会在该节点导入镜像。巡检命名空间默认为 privatization。模型接口 URL 和模型 ID 无法从现有 suanfaip 推导，安装 AIOps 时会单独提示；也可在启动 main.sh 前设置 AIOPS_MODEL_BASE_URL、AIOPS_MODEL_ID，实现非交互安装。模型 API Key 可选：免密接口在提示时直接回车；需要鉴权时输入或预设 AIOPS_MODEL_API_KEY。其他 AIOPS_* 参数仍可预先通过环境变量覆盖。首次安装必须明确设置 AIOPS_PASSWORD；交互安装可在提示时输入，非交互安装必须预设该变量。密码不会写入仓库。跳过 AIOps 不会调用交付目录中的任何脚本。
 
 若显式设置 AIOPS_STORAGE_NODE 为其他节点，必须先在该节点导入相同镜像并准备持久化目录。NodePort 31884 需在访问路径上放通，且不得与现有服务冲突。首次集成先在与正式部署相同架构的测试节点验收登录、Pod 就绪、巡检任务和 Pod 重建后的数据保留。
 
@@ -50,7 +50,7 @@ fi
 | `AIOPS_DATA_DIR` | 必填 | 宿主机持久化目录；下设 `data`、`workspace` |
 | `AIOPS_RCA_NAMESPACES` | 建议显式指定 | 逗号分隔的巡检命名空间；未传时沿用测试环境默认值 |
 | `AIOPS_STORAGE_NODE` | 多节点必填 | 保存 hostPath 的节点名，镜像也须加载在该节点 |
-| `AIOPS_USERNAME`、`AIOPS_PASSWORD` | 首次安装可选 | 固定登录账号；不传密码时脚本生成并打印 |
+| `AIOPS_USERNAME`、`AIOPS_PASSWORD` | 首次安装可选 | 固定登录账号；未传密码时交互提示输入，非交互安装报错 |
 | `AIOPS_ROTATE_LOGIN` | 可选 | 设为 `true` 时更新登录账号与密码 |
 | `AIOPS_IMAGE` | 可选 | 覆盖默认镜像标签 `aiops/workbench:v15` |
 | `AIOPS_IMAGE_ARCHIVE` | 可选 | 指定镜像归档路径 |
