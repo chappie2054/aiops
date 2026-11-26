@@ -166,10 +166,6 @@ spec:
               mountPath: /workspace
             - name: launch-token
               mountPath: /run/dsh
-            - name: gateway-overrides
-              mountPath: /opt/aiops/launcher.mjs
-              subPath: launcher.mjs
-              readOnly: true
           resources:
             requests: {cpu: 200m, memory: 512Mi}
             limits: {cpu: "2", memory: 3Gi}
@@ -192,24 +188,10 @@ spec:
             - name: launch-token
               mountPath: /run/dsh
               readOnly: true
-            - name: gateway-overrides
-              mountPath: /opt/aiops/gateway.mjs
-              subPath: gateway.mjs
-              readOnly: true
-            - name: gateway-overrides
-              mountPath: /opt/aiops/login.html
-              subPath: login.html
-              readOnly: true
-            - name: gateway-overrides
-              mountPath: /opt/aiops/guide.html
-              subPath: guide.html
-              readOnly: true
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {cpu: 500m, memory: 256Mi}
       volumes:
-        - name: gateway-overrides
-          configMap: {name: aiops-gateway-overrides}
         - name: config
           configMap: {name: deepseek-harness-config}
         - name: browser-session

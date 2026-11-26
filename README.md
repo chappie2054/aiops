@@ -35,7 +35,7 @@
 交付包中的 `install.sh`、`harness.yaml`、amd64 与 arm64 两份镜像归档及各自同名的 `.sha256` 文件放在同一目录。目标节点需要 Docker、kubectl、openssl，安装脚本会校验并导入镜像、创建登录配置、部署到 Kubernetes 并等待工作负载就绪。**部署时无需再下载 kubectl、Helm 或工作台依赖。**
 
 ```bash
-cd delivery/aiops-v15
+cd shizai-Install-dep/aiops
 AIOPS_NODE_IP='<浏览器访问的节点 IP>' \
 AIOPS_MODEL_BASE_URL='<OpenAI 兼容接口基础 URL>' \
 AIOPS_MODEL_ID='<模型 ID>' \

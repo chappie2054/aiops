@@ -5,7 +5,7 @@
 
 本仓库的 `deploy/aiops/` 是 AIOps 安装脚本与清单的维护源头。发布时将 `install.sh`、`install-from-shizai.sh`、`uninstall.sh`、`harness.yaml` 同步到 `privatization-deploy/components/aiops/`，并同步到本地交付目录；两个架构的镜像归档及校验文件另行提供，不提交 Git。部署仓库的 `stage-into-package.sh` 校验并复制两份镜像及组件到构建机的 `shizai-Install-dep/aiops/`。三个基础目录的 `main.sh`、`main-algo-new.sh` 由部署仓库维护，修改这些入口时应在部署仓库同步。
 
-主安装脚本读取 `NodeCount` 后询问是否安装 AIOps，默认安装；选择跳过则不调用 AIOps。选择安装时先检查 `aiops/install-from-shizai.sh` 是否存在，原有 Kubernetes 与业务安装完成后导出 `MasterIP`、`outsideip`、`AppDir` 并调用该适配脚本。适配脚本确定浏览器 IP、`${AppDir}/aiops` 持久化路径和主节点，读取或提示模型 URL、模型 ID、可选 API Key，然后调用 `install.sh`。安装脚本按 `uname -m` 选择对应归档，校验并 `docker load`，创建或沿用模型密钥 Secret，渲染清单并部署到 `aiops-test`，等待工作负载就绪。入口为 `http://<outsideip>:31884/`。
+主安装脚本读取 `NodeCount` 后询问是否安装 AIOps，默认安装；选择跳过则不调用 AIOps。选择安装时先检查 `aiops/install-from-shizai.sh` 是否存在，Kubernetes 初始化完成后导出 `MasterIP`、`outsideip`、`AppDir` 并调用该适配脚本。适配脚本确定浏览器 IP、`${AppDir}/aiops` 持久化路径和主节点，读取或提示模型 URL、模型 ID、可选 API Key，然后调用 `install.sh`。安装脚本按 `uname -m` 选择对应归档，校验并 `docker load`，创建或沿用模型密钥 Secret，渲染清单并部署到 `aiops-test`，等待工作负载就绪。入口为 `http://<outsideip>:31884/`。
 
 上述链路只说明代码调用关系；构建机最终压缩包是否带入 `aiops/`、整包安装及高可用仍需单独验收。模型 API Key 属于运行时配置，更新脚本与清单不需要重建工作台镜像。
 
@@ -52,13 +52,22 @@ fi
 | `AIOPS_STORAGE_NODE` | 多节点必填 | 保存 hostPath 的节点名，镜像也须加载在该节点 |
 | `AIOPS_USERNAME`、`AIOPS_PASSWORD` | 首次安装可选 | 固定登录账号；未传密码变量时读取交付目录 login-password，文件缺失则报错 |
 | `AIOPS_ROTATE_LOGIN` | 可选 | 设为 `true` 时更新登录账号与密码 |
-| `AIOPS_IMAGE` | 可选 | 覆盖默认镜像标签 `aiops/workbench:v15` |
+| `AIOPS_IMAGE` | 可选 | 覆盖默认镜像标签 `aiops/workbench:v16` |
 | `AIOPS_IMAGE_ARCHIVE` | 可选 | 指定镜像归档路径 |
 | `AIOPS_PULL` | 可选 | 仅设为 `true` 时允许从镜像仓库拉取 |
 
-交付包内有归档时，脚本先校验并加载归档，即使本机已有同名镜像也会更新；没有归档时才使用本机已有镜像，最后才考虑显式允许的仓库拉取。归档按架构命名 `aiops-workbench-v15-<arch>.tar.gz`，由 `uname -m` 自动选择；加载前校验 `.sha256`。模型密钥保存在 `aiops-model-api-key` Secret 中，Pod 通过环境变量读取；更新密钥后安装脚本会重启工作台。默认清单使用 `imagePullPolicy: Never`，目标节点不需要镜像仓库。卸载脚本保留宿主机持久化目录、命名空间与本地镜像。
+交付包内有归档时，脚本先校验并加载归档，即使本机已有同名镜像也会更新；没有归档时才使用本机已有镜像，最后才考虑显式允许的仓库拉取。归档按架构命名 `aiops-workbench-v16-<arch>.tar.gz`，由 `uname -m` 自动选择；加载前校验 `.sha256`。模型密钥保存在 `aiops-model-api-key` Secret 中，Pod 通过环境变量读取；更新密钥后安装脚本会重启工作台。默认清单使用 `imagePullPolicy: Never`，目标节点不需要镜像仓库。卸载脚本保留宿主机持久化目录、命名空间与本地镜像。
 
 ## 构建与验收镜像
+
+当前 v16 交付镜像使用已验收的双架构 v15 归档作为基础层，并将本仓库维护的网关、启动器和登录页面打入镜像。两台对应架构的构建机分别执行：
+
+```sh
+bash build-from-archive.sh /path/to/aiops-workbench-v15-amd64.tar.gz amd64 /path/to/output
+# ARM 构建机将归档名和架构参数改为 arm64
+```
+
+脚本先校验 v15 归档，再构建 v16，并生成 `aiops-workbench-v16-<arch>.tar.gz` 及校验文件。发布前核对容器内 `/opt/aiops/` 的四个文件与本仓库一致。完整重建底层依赖时使用下述 Dockerfile；不要直接把未经构建的本地文件覆盖到运行中的 Pod。
 
 | 构建入口 | 适用情况 |
 | --- | --- |
@@ -68,17 +77,17 @@ fi
 构建上下文包含 `Dockerfile*`、`gateway.mjs`、`launcher.mjs`、`hash-password.mjs`、`guide.html`、`login.html`、`brand.*`、`favicon.svg`、`rca/` 和 `seed/`。`Dockerfile.arm64` 还需上述两个 ARM 二进制。`Dockerfile.rca-update` 和 `Dockerfile.cached-base` 是测试环境增量构建入口，不用于完整交付。
 
 ```sh
-docker build -f Dockerfile -t aiops/workbench:v15 .
-docker build -f Dockerfile.arm64 -t aiops/workbench:v15 .  # 仅在 arm64 构建机执行
+docker build -f Dockerfile -t aiops/workbench:v16 .
+docker build -f Dockerfile.arm64 -t aiops/workbench:v16 .  # 仅在 arm64 构建机执行
 
-docker run --rm --entrypoint node aiops/workbench:v15 \
+docker run --rm --entrypoint node aiops/workbench:v16 \
   -e 'console.log(require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/koffi").version)'
 
-docker save aiops/workbench:v15 | gzip > aiops-workbench-v15-<arch>.tar.gz
-sha256sum aiops-workbench-v15-<arch>.tar.gz > aiops-workbench-v15-<arch>.tar.gz.sha256
+docker save aiops/workbench:v16 | gzip > aiops-workbench-v16-<arch>.tar.gz
+sha256sum aiops-workbench-v16-<arch>.tar.gz > aiops-workbench-v16-<arch>.tar.gz.sha256
 ```
 
-镜像构建会修正 Alpine musl 环境下 koffi 的二进制加载路径，并在构建时测试 `require('koffi')`。这项检查不能省略：路径错误时工作台可能在创建会话时退出。发布前还应验证 `dsh web` 可监听、能新建会话；部署后检查 Pod `2/2 Running`、登录入口、持久化目录和巡检任务回执。
+底层镜像构建会修正 Alpine musl 环境下 koffi 的二进制加载路径，并在构建时测试 `require('koffi')`。这项检查不能省略：路径错误时工作台可能在创建会话时退出。发布前还应验证 `dsh web` 可监听、能新建会话；部署后检查 Pod `2/2 Running`、登录入口、持久化目录和巡检任务回执。业务前端代理脚本依赖同目录的 `frontend-location.conf`；重复安装会先恢复前端镜像原始配置，再生成新的代理配置。
 
 ## 本地开发
 

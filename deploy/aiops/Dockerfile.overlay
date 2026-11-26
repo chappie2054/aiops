@@ -1,0 +1,3 @@
+ARG BASE_IMAGE=aiops/workbench:v15
+FROM ${BASE_IMAGE}
+COPY gateway.mjs launcher.mjs login.html guide.html /opt/aiops/
