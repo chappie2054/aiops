@@ -120,12 +120,19 @@ kubectl rollout restart deployment/deepseek-harness -n "${namespace}" >/dev/null
 kubectl rollout status deployment/deepseek-harness -n "${namespace}" --timeout=240s
 kubectl delete configmap aiops-gateway-overrides -n "${namespace}" --ignore-not-found >/dev/null
 
-if ! kubectl get secret deepseek-harness-browser-session -n "${namespace}" >/dev/null 2>&1; then
+if ! kubectl get secret deepseek-harness-browser-session -n "${namespace}" >/dev/null 2>&1 ||
+   [[ "$(kubectl get secret deepseek-harness-browser-session -n "${namespace}" -o go-template='{{range $k,$v := .data}}{{len $v}}{{end}}')" == 0 ]]; then
   pod="$(kubectl get pod -n "${namespace}" -l app=deepseek-harness -o jsonpath='{.items[0].metadata.name}')"
   credentials="$(mktemp)"
   trap 'rm -f "${credentials}" "${manifest}"' EXIT
-  kubectl cp "${namespace}/${pod}:/data/dsh/.credentials.yaml" "${credentials}" -c harness
-  kubectl create secret generic deepseek-harness-browser-session -n "${namespace}" --from-file=".credentials.yaml=${credentials}"
+  for attempt in $(seq 1 30); do
+    if kubectl cp "${namespace}/${pod}:/data/dsh/.credentials.yaml" "${credentials}" -c harness >/dev/null 2>&1 && [[ -s "${credentials}" ]]; then
+      break
+    fi
+    sleep 2
+  done
+  [[ -s "${credentials}" ]] || { echo 'Harness 浏览器凭据未生成，安装未完成' >&2; exit 1; }
+  kubectl create secret generic deepseek-harness-browser-session -n "${namespace}" --from-file=".credentials.yaml=${credentials}" --dry-run=client -o yaml | kubectl apply -f -
 fi
 echo "入口: ${AIOPS_PUBLIC_URL}"
 echo "使用说明: ${AIOPS_PUBLIC_URL}guide"
